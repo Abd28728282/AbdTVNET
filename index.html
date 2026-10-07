@@ -2,163 +2,61 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cartoon Network Arabic - Live</title>
-  <!-- Shaka Player UI CSS & JS -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.3.5/controls.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.3.5/shaka-player.ui.js"></script>
   <style>
-    body {
-      margin: 0;
-      background-color: #0d1117;
-      color: #fff;
-      font-family: system-ui, -apple-system, sans-serif;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-    }
-    .player-container {
-      width: 100%;
-      max-width: 900px;
-      position: relative;
-      background: #000;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    }
-    video {
-      width: 100%;
-      height: 100%;
-      display: block;
-    }
-    .error-overlay {
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 0, 0.85);
-      display: none;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      padding: 20px;
-      text-align: center;
-      z-index: 10;
-    }
-    .error-title {
-      color: #ff4d4d;
-      font-size: 1.2rem;
-      font-weight: bold;
-      margin-bottom: 10px;
-    }
-    .error-desc {
-      color: #ccc;
-      font-size: 0.95rem;
-      max-width: 80%;
-      line-height: 1.5;
-    }
+    body { margin: 0; background-color: #000; display: flex; justify-content: center; align-items: center; height: 100vh; }
+    .container { width: 100%; max-width: 900px; }
+    video { width: 100%; height: 100%; }
   </style>
 </head>
 <body>
 
-  <div class="player-container" data-shaka-player-container>
-    <video data-shaka-player id="video" autoplay poster="https://starzplay.com/favicon.ico"></video>
-    
-    <!-- واجهة عرض الأخطاء -->
-    <div id="errorOverlay" class="error-overlay">
-      <div class="error-title" id="errorTitle">خطأ في التشغيل</div>
-      <div class="error-desc" id="errorDesc">تعذر تحميل الفيديو.</div>
-    </div>
+  <div class="container" data-shaka-player-container>
+    <video data-shaka-player id="video" autoplay></video>
   </div>
 
   <script>
     const manifestUri = 'https://ev-eu-hw-fast-mpd.starzplayarabia.com/Cartoon_Network_Arabic/dash/drm/index.mpd';
 
     async function initApp() {
-      // التحقق من دعم المتصفح لمكتبة Shaka Player
       shaka.polyfill.installAll();
-      if (!shaka.Player.isBrowserSupported()) {
-        showError('المتصفح غير مدعوم', 'متصفحك الحالي لا يدعم تقنيات تشغيل هذا البث.');
-        return;
-      }
-
-      initPlayer();
-    }
-
-    async function initPlayer() {
       const video = document.getElementById('video');
       const ui = video['ui'];
       const controls = ui.getControls();
       const player = controls.getPlayer();
 
-      // إعدادات DRM والشبكة
+      // ===============================================================
+      // إعدادات التشفير DRM (اختر إحدى الطريقتين ليعمل الصوت والصورة)
+      // ===============================================================
       player.configure({
         drm: {
-          // إذا توفرت لديك مفاتيح ClearKey ضعها هنا بالشكل: 'KID': 'KEY'
+          // الخيار الأول: استخدام مفاتيح ClearKey المباشرة (إذا قمت باستخراجها)
           clearKeys: {
-            // 'key-id-hex': 'key-hex'
+            // 'KID_HEX_HERE': 'KEY_HEX_HERE'
           },
-          // أو سيرفر التراخيص مع التوكن
+
+          // الخيار الثاني: استخدام سيرفر التراخيص (Widevine License Server)
           servers: {
             'com.widevine.alpha': 'https://YOUR_LICENSE_SERVER_URL'
-          }
-        },
-        manifest: {
-          retryParameters: {
-            maxAttempts: 3,
-            baseDelay: 1000
           }
         }
       });
 
-      // التقاط الأخطاء العامة من المشغل
-      player.addEventListener('error', onPlayerErrorEvent);
+      // لإرسال Headers أو Tokens مع طلب التراخيص إذا لزم الأمر:
+      player.getNetworkingEngine().registerRequestFilter((type, request) => {
+        if (type === shaka.net.NetworkingEngine.RequestType.LICENSE) {
+          // request.headers['Authorization'] = 'Bearer YOUR_TOKEN';
+        }
+      });
 
       try {
         await player.load(manifestUri);
-        console.log('تم تحميل ملف البث بنجاح');
+        console.log('تم تحميل الفيديو وتفكيك التشفير بنجاح.');
       } catch (error) {
-        handlePlayerError(error);
+        console.error('فشل التشغيل بسبب التشفير:', error);
       }
-    }
-
-    function onPlayerErrorEvent(event) {
-      handlePlayerError(event.detail);
-    }
-
-    function handlePlayerError(error) {
-      console.error('Shaka Error Code:', error.code, 'Category:', error.category, error);
-
-      let title = 'خطأ في تشغيل البث';
-      let message = 'حدث خطأ غير متوقع أثناء محاولة تشغيل القناة.';
-
-      // معالجة الأخطاء الشائعة بناءً على أكواد Shaka Player
-      switch (error.code) {
-        case 6001: // DRM_REQUEST_FAILED
-        case 6006: // LICENSE_REQUEST_FAILED
-        case 6012: // RESTRICTED_LICENSE
-          title = 'تشفير DRM حمايه';
-          message = 'البث مشفر بنظام Widevine DRM. يتطلب التشغيل تزويد المشغل بمفاتيح التشفير (DRM Keys) أو سيرفر التراخيص (License Server) الخاص بالموقع.';
-          break;
-        case 1001: // HTTP_ERROR (CORS / 404 / 403)
-        case 1002: // REQUEST_FILTER_ERROR
-          title = 'خطأ في الاتصال (CORS / Network)';
-          message = 'تعذر الوصول إلى سيرفر البث. قد يكون الرابط منتهي الصلاحية أو أن السيرفر يرفض الطلبات الخارجية (CORS).';
-          break;
-        case 4000: // BAD_HTTP_STATUS
-          title = 'رابط البث غير متاح';
-          message = 'انتهت جلسة الرابط أو تم تغيير المسار من المصدر (403/404).';
-          break;
-      }
-
-      showError(title, message);
-    }
-
-    function showError(title, desc) {
-      const overlay = document.getElementById('errorOverlay');
-      document.getElementById('errorTitle').innerText = title;
-      document.getElementById('errorDesc').innerText = desc;
-      overlay.style.display = 'flex';
     }
 
     document.addEventListener('shaka-ui-loaded', initApp);
