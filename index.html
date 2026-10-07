@@ -1,59 +1,47 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>بث مباشر - فلسطين التعليمية</title>
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-    <style>
-        body {
-            margin: 0;
-            background-color: #000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            overflow: hidden;
-        }
-        video {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>Cartoon Network Arabic - Live</title>
+  <!-- Shaka Player UI CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.3.5/controls.min.css">
+  <!-- Shaka Player JS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.3.5/shaka-player.ui.js"></script>
 </head>
-<body>
+<body style="margin: 0; background-color: #000; display: flex; justify-content: center; align-items: center; height: 100vh;">
 
-    <!-- تم إزالة خاصية muted ليعمل الصوت، وتم وضع autoplay و playsinline -->
-    <video id="liveVideo" autoplay playsinline controls></video>
+  <div data-shaka-player-container style="width: 100%; max-width: 900px;">
+    <video data-shaka-player id="video" style="width:100%; height:100%;" autoplay></video>
+  </div>
 
-    <script>
-        var video = document.getElementById('liveVideo');
-        var videoSrc = 'https://pbc.furrera.ps/PalestineEDU/index.m3u8';
+  <script>
+    async function initPlayer() {
+      const video = document.getElementById('video');
+      const ui = video['ui'];
+      const controls = ui.getControls();
+      const player = controls.getPlayer();
 
-        if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            video.src = videoSrc;
-            video.play().catch(function(error) {
-                console.log("Autoplay blocked, attempting interaction fallback:", error);
-            });
-        } else if (Hls.isSupported()) {
-            var hls = new Hls();
-            hls.loadSource(videoSrc);
-            hls.attachMedia(video);
-            hls.on(Hls.Events.MANIFEST_PARSED, function() {
-                video.play().catch(function(error) {
-                    console.log("Autoplay blocked, attempting interaction fallback:", error);
-                });
-            });
+      // رابط ملف DASH MPD
+      const manifestUri = 'https://ev-eu-hw-fast-mpd.starzplayarabia.com/Cartoon_Network_Arabic/dash/drm/index.mpd';
+
+      // إعدادات الـ DRM (يجب إضافة سيرفر التراخيص License Server الخاص بـ Starzplay)
+      player.configure({
+        drm: {
+          servers: {
+            'com.widevine.alpha': 'https://YOUR_LICENSE_SERVER_URL_HERE' // ضع رابط سيرفر التراخيص هنا
+          }
         }
+      });
 
-        // محاولة تشغيل إضافية عند أي تفاعل أو لمسة للشاشة إن لزم الأمر
-        window.addEventListener('click', function() {
-            if (video.paused) {
-                video.play();
-            }
-        }, { once: true });
-    </script>
+      try {
+        await player.load(manifestUri);
+        console.log('تم تحميل البث بنجاح!');
+      } catch (error) {
+        console.error('خطأ في تشغيل البث:', error);
+      }
+    }
 
+    document.addEventListener('shaka-ui-loaded', initPlayer);
+  </script>
 </body>
 </html>
