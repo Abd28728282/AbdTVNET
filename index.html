@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مشغل البث المدمج</title>
+    <title>مشغل البث المدمج السريع</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- مكتبة Hls.js للتشغيل الحقيقي والسريع لروابط m3u8 و HTTP -->
+    <!-- مكتبة Hls.js للتشغيل الحقيقي والسريع -->
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
     <style>
@@ -32,7 +32,6 @@
             justify-content: center;
         }
 
-        /* حاوية المشغل تملأ الشاشة بالكامل داخل الإطار */
         .custom-player {
             position: relative;
             width: 100%;
@@ -51,7 +50,7 @@
             pointer-events: none;
         }
 
-        /* زر التشغيل الكبير في المنتصف لتجاوز قيود المتصفح */
+        /* زر التشغيل الكبير في المنتصف */
         .big-play-btn {
             position: absolute;
             top: 50%;
@@ -78,26 +77,47 @@
             transform: translate(-50%, -50%) scale(0.92);
         }
 
-        /* دائرة التحميل نظام أندرويد في المنتصف */
-        .android-spinner {
+        /* مؤشر تحميل عصري وجديد (Pulse Wave Loader) */
+        .modern-loader {
             position: absolute;
-            width: 50px;
-            height: 50px;
-            border: 4px solid rgba(255, 255, 255, 0.2);
-            border-top-color: #00d2ff;
-            border-radius: 50%;
-            animation: androidSpin 0.7s linear infinite;
+            width: 65px;
+            height: 65px;
             display: none;
             z-index: 1000;
             pointer-events: none;
         }
 
-        @keyframes androidSpin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .modern-loader div {
+            position: absolute;
+            border: 3px solid #00d2ff;
+            opacity: 1;
+            border-radius: 50%;
+            animation: pulseWave 1.2s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+            box-shadow: 0 0 12px rgba(0, 210, 255, 0.5);
         }
 
-        /* شريط التحكم السريع (يتوارى تلقائياً مثل يوتيوب) */
+        .modern-loader div:nth-child(2) {
+            animation-delay: -0.6s;
+        }
+
+        @keyframes pulseWave {
+            0% {
+                top: 30px;
+                left: 30px;
+                width: 0;
+                height: 0;
+                opacity: 1;
+            }
+            100% {
+                top: 0px;
+                left: 0px;
+                width: 60px;
+                height: 60px;
+                opacity: 0;
+            }
+        }
+
+        /* شريط التحكم */
         .controls {
             position: absolute;
             bottom: 0;
@@ -119,7 +139,7 @@
             pointer-events: none;
         }
 
-        /* شريط التقدم النقاط المتراصة */
+        /* شريط التقدم */
         .dots-progress-container {
             width: 100%;
             height: 14px;
@@ -179,11 +199,14 @@
 </head>
 <body>
 
-    <!-- حاوية المشغل -->
     <div class="custom-player" id="player-container" onclick="toggleControls()">
-        <div class="android-spinner" id="spinner"></div>
+        <!-- مؤشر التحميل العصري -->
+        <div class="modern-loader" id="spinner">
+            <div></div>
+            <div></div>
+        </div>
 
-        <!-- زر التشغيل الكبير في المنتصف يظهر عند البداية فقط -->
+        <!-- زر التشغيل الكبير -->
         <div class="big-play-btn" id="big-play-btn" onclick="startPlayback(event)">
             <i class="fa-solid fa-play"></i>
         </div>
@@ -222,7 +245,6 @@
         let hls = null;
         let hasStarted = false;
 
-        // التأكد من ظهور زر التشغيل عند الفتح الفوري
         window.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
             const streamUrl = urlParams.get('src');
@@ -234,7 +256,6 @@
             }
         });
 
-        // بناء شريط التقدم السريع
         (function initDots() {
             const fragment = document.createDocumentFragment();
             for (let i = 0; i < TOTAL_DOTS; i++) {
@@ -264,7 +285,7 @@
             }
         }
 
-        // تجهيز البث (يدعم m3u8 و http وروابط الفيديو المباشرة)
+        // تهيئة البث مع أقصى تحسينات السرعة وتقليل التقطيع
         function initStream(url) {
             if (hls) {
                 hls.destroy();
@@ -274,9 +295,13 @@
             if (url.includes('.m3u8') || url.includes('m3u8')) {
                 if (Hls.isSupported()) {
                     hls = new Hls({ 
-                        maxBufferLength: 30, 
+                        maxBufferLength: 60,            /* زيادة التخزين المؤقت إلى 60 ثانية لتفادي التقطيع */
+                        maxMaxBufferLength: 120,
+                        maxBufferSize: 60 * 1024 * 1024, /* استهلاك ذاكرة مجدي لحفظ الأجزاء */
                         liveSyncDurationCount: 3,
-                        enableWorker: true
+                        enableWorker: true,             /* تشغيل المعالجة في الخلفية لتسريع الأداء */
+                        lowLatencyMode: true,           /* تقليل زمن التأخير */
+                        backBufferLength: 30
                     });
                     hls.loadSource(url);
                     hls.attachMedia(video);
@@ -305,7 +330,6 @@
             }
         }
 
-        // بدء التشغيل عند النقر على زر المنتصف لمرة واحدة
         function startPlayback(event) {
             event.stopPropagation();
             hasStarted = true;
