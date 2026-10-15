@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>مشغل البث المدمج</title>
-    
+
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+
     <!-- مكتبة Hls.js للتشغيل الحقيقي والسريع لروابط m3u8 و HTTP -->
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
@@ -49,6 +49,33 @@
             height: 100%;
             object-fit: contain;
             pointer-events: none;
+        }
+
+        /* زر التشغيل الكبير في المنتصف لتجاوز قيود المتصفح */
+        .big-play-btn {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 75px;
+            height: 75px;
+            background: rgba(0, 0, 0, 0.75);
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            color: white;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 15;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            transition: background 0.2s, transform 0.2s;
+        }
+
+        .big-play-btn:active {
+            background: rgba(0, 0, 0, 0.9);
+            transform: translate(-50%, -50%) scale(0.95);
         }
 
         /* دائرة التحميل نظام أندرويد في المنتصف */
@@ -173,6 +200,11 @@
     <div class="custom-player" id="player-container" onclick="toggleControls()">
         <div class="android-spinner" id="spinner"></div>
 
+        <!-- زر التشغيل الكبير في المنتصف يظهر عند البداية فقط -->
+        <div class="big-play-btn" id="big-play-btn" onclick="startPlayback(event)">
+            <i class="fa-solid fa-play"></i>
+        </div>
+
         <video id="main-video" playsinline></video>
 
         <!-- عناصر التحكم -->
@@ -200,6 +232,7 @@
     <script>
         const video = document.getElementById('main-video');
         const spinner = document.getElementById('spinner');
+        const bigPlayBtn = document.getElementById('big-play-btn');
         const dotsBar = document.getElementById('dots-bar');
         const playBtn = document.getElementById('play-btn');
         const controls = document.getElementById('controls');
@@ -207,14 +240,15 @@
         const TOTAL_DOTS = 40;
         let hideTimeout;
         let hls = null;
+        let hasStarted = false;
 
         // استخراج الرابط تلقائياً من إعدادات الـ URL (الـ Query Parameter باسم src)
         window.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
             const streamUrl = urlParams.get('src');
-            
+
             if (streamUrl) {
-                playStream(streamUrl);
+                initStream(streamUrl);
             } else {
                 showError("لم يتم تحديد رابط البث في الـ URL (استخدم ?src=رابط_البث)");
             }
@@ -232,6 +266,7 @@
         })();
 
         function toggleControls() {
+            if (!hasStarted) return;
             if (controls.classList.contains('hide')) {
                 showControls();
             } else {
@@ -249,8 +284,8 @@
             }
         }
 
-        // دالة تشغيل البث الفعلية
-        function playStream(url) {
+        // تجهيز البث وعرض زر التشغيل الأوسط
+        function initStream(url) {
             hideError();
             showSpinner(true);
 
@@ -264,13 +299,9 @@
                     hls = new Hls({ maxBufferLength: 30, liveSyncDurationCount: 3 });
                     hls.loadSource(url);
                     hls.attachMedia(video);
-                    
+
                     hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                        video.play().then(() => {
-                            showSpinner(false);
-                            playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
-                            showControls();
-                        }).catch(() => showSpinner(false));
+                        showSpinner(false);
                     });
 
                     hls.on(Hls.Events.ERROR, () => {
@@ -279,11 +310,7 @@
                     });
                 } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                     video.src = url;
-                    video.play().then(() => {
-                        showSpinner(false);
-                        playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
-                        showControls();
-                    });
+                    showSpinner(false);
                 } else {
                     showSpinner(false);
                     showError("متصفحك لا يدعم هذا البث.");
@@ -291,12 +318,25 @@
             } else {
                 video.src = url;
                 video.load();
-                video.play().then(() => {
-                    showSpinner(false);
-                    playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
-                    showControls();
-                }).catch(() => showSpinner(false));
+                showSpinner(false);
             }
+        }
+
+        // بدء التشغيل عند النقر على زر المنتصف لمرة واحدة
+        function startPlayback(event) {
+            event.stopPropagation();
+            hasStarted = true;
+            bigPlayBtn.style.display = 'none';
+            showSpinner(true);
+
+            video.play().then(() => {
+                showSpinner(false);
+                playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+                showControls();
+            }).catch(() => {
+                showSpinner(false);
+                showError("تعذر تشغيل البث، حاول مرة أخرى.");
+            });
         }
 
         video.addEventListener('timeupdate', () => {
@@ -304,7 +344,7 @@
             const percentage = video.currentTime / video.duration;
             const activeCount = Math.floor(percentage * TOTAL_DOTS);
             const dots = dotsBar.children;
-            
+
             for (let i = 0; i < TOTAL_DOTS; i++) {
                 dots[i].classList.toggle('active', i <= activeCount);
             }
@@ -322,6 +362,7 @@
         });
 
         function togglePlay() {
+            if (!hasStarted) return;
             if (video.paused) {
                 video.play();
                 playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
@@ -340,12 +381,22 @@
                 'fa-solid fa-volume-xmark' : 'fa-solid fa-volume-high';
         }
 
+        // التبديل لشاشة كاملة مع قفل الشاشة أفقياً (Landscape)
         function toggleFullscreen() {
             const container = document.getElementById('player-container');
             if (!document.fullscreenElement) {
-                container.requestFullscreen();
+                container.requestFullscreen().then(() => {
+                    if (screen.orientation && screen.orientation.lock) {
+                        screen.orientation.lock('landscape').catch(() => {});
+                    }
+                }).catch(() => {});
             } else {
-                document.exitFullscreen();
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+                if (screen.orientation && screen.orientation.unlock) {
+                    screen.orientation.unlock();
+                }
             }
         }
 
