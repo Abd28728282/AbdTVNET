@@ -286,7 +286,7 @@
             }
         }
 
-        // تجهيز البث
+        // تجهيز البث (يدعم m3u8 و http وروابط الفيديو المباشرة)
         function initStream(url) {
             hideError();
 
@@ -295,14 +295,38 @@
                 hls = null;
             }
 
-            if (url.includes('.m3u8')) {
+            // فحص ما إذا كان الرابط خاص بـ HLS أو رابط HTTP عادي
+            if (url.includes('.m3u8') || url.includes('m3u8')) {
                 if (Hls.isSupported()) {
-                    hls = new Hls({ maxBufferLength: 30, liveSyncDurationCount: 3 });
+                    hls = new Hls({ 
+                        maxBufferLength: 30, 
+                        liveSyncDurationCount: 3,
+                        enableWorker: true
+                    });
                     hls.loadSource(url);
                     hls.attachMedia(video);
 
-                    hls.on(Hls.Events.ERROR, () => {
-                        showError("تعذر الاتصال بخادم البث المباشر.");
+                    // معالجة ذكية للأخطاء لتفادي إظهار خطأ وهمي أثناء التحميل المؤقت (Buffering)
+                    hls.on(Hls.Events.ERROR, (event, data) => {
+                        if (data.fatal) {
+                            switch (data.type) {
+                                case Hls.ErrorTypes.NETWORK_ERROR:
+                                    console.log("خطأ في الشبكة، جاري إعادة المحاولة...");
+                                    hls.startLoad();
+                                    break;
+                                case Hls.ErrorTypes.MEDIA_ERROR:
+                                    console.log("خطأ في الوسائط، جاري محاولة الاستشفاء...");
+                                    hls.recoverMediaError();
+                                    break;
+                                default:
+                                    hls.destroy();
+                                    showError("تعذر الاتصال بخادم البث المباشر.");
+                                    break;
+                            }
+                        } else {
+                            // أخطاء غير قاتلة (مثل تأخر تحميل قطعة فيديو مؤقتة) يتم تجاهلها وإخفاء أي خطأ قديم
+                            hideError();
+                        }
                     });
                 } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                     video.src = url;
@@ -310,6 +334,7 @@
                     showError("متصفحك لا يدعم هذا البث.");
                 }
             } else {
+                // يدعم روابط HTTP العادية (مثل mp4 أو روابط البث المباشر عبر http)
                 video.src = url;
                 video.load();
             }
@@ -379,7 +404,6 @@
             const container = document.getElementById('player-container');
             if (!document.fullscreenElement) {
                 container.requestFullscreen().then(() => {
-                    // قفل اتجاه الشاشة إلى وضع أفقي (ملاحظة: يتطلب دعم المتصفح أو الجوال)
                     if (screen.orientation && typeof screen.orientation.lock === 'function') {
                         screen.orientation.lock('landscape').catch(() => {});
                     }
@@ -402,8 +426,11 @@
         });
 
         video.addEventListener('error', () => {
-            showSpinner(false);
-            showError("حدث خطأ في تشغيل البث.");
+            // نتأكد أن الخطأ ليس بسبب إعادة التحميل الطبيعي
+            if (video.error && video.error.code !== 3) {
+                showSpinner(false);
+                showError("حدث خطأ في تشغيل البث.");
+            }
         });
 
         function showSpinner(show) {
