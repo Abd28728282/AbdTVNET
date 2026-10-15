@@ -57,25 +57,25 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 75px;
-            height: 75px;
-            background: rgba(0, 0, 0, 0.75);
-            border: 2px solid rgba(255, 255, 255, 0.8);
+            width: 80px;
+            height: 80px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 3px solid rgba(255, 255, 255, 0.9);
             border-radius: 50%;
             color: white;
-            font-size: 28px;
+            font-size: 30px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            z-index: 15;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-            transition: background 0.2s, transform 0.2s;
+            z-index: 9999;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
+            transition: transform 0.2s, background 0.2s;
         }
 
         .big-play-btn:active {
-            background: rgba(0, 0, 0, 0.9);
-            transform: translate(-50%, -50%) scale(0.95);
+            background: rgba(0, 0, 0, 0.95);
+            transform: translate(-50%, -50%) scale(0.92);
         }
 
         /* دائرة التحميل نظام أندرويد في المنتصف */
@@ -88,7 +88,7 @@
             border-radius: 50%;
             animation: androidSpin 0.7s linear infinite;
             display: none;
-            z-index: 10;
+            z-index: 1000;
             pointer-events: none;
         }
 
@@ -110,7 +110,7 @@
             gap: 8px;
             opacity: 1;
             transition: opacity 0.15s ease-in-out;
-            z-index: 5;
+            z-index: 500;
             pointer-events: auto;
         }
 
@@ -189,7 +189,7 @@
             color: #fff;
             text-align: center;
             font-size: 14px;
-            z-index: 20;
+            z-index: 2000;
             pointer-events: none;
         }
     </style>
@@ -242,10 +242,12 @@
         let hls = null;
         let hasStarted = false;
 
-        // استخراج الرابط تلقائياً من إعدادات الـ URL (الـ Query Parameter باسم src)
+        // التأكد من ظهور زر التشغيل عند الفتح الفوري
         window.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
             const streamUrl = urlParams.get('src');
+
+            bigPlayBtn.style.display = 'flex'; // ضمان ظهوره
 
             if (streamUrl) {
                 initStream(streamUrl);
@@ -284,10 +286,9 @@
             }
         }
 
-        // تجهيز البث وعرض زر التشغيل الأوسط
+        // تجهيز البث
         function initStream(url) {
             hideError();
-            showSpinner(true);
 
             if (hls) {
                 hls.destroy();
@@ -300,25 +301,17 @@
                     hls.loadSource(url);
                     hls.attachMedia(video);
 
-                    hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                        showSpinner(false);
-                    });
-
                     hls.on(Hls.Events.ERROR, () => {
-                        showSpinner(false);
                         showError("تعذر الاتصال بخادم البث المباشر.");
                     });
                 } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                     video.src = url;
-                    showSpinner(false);
                 } else {
-                    showSpinner(false);
                     showError("متصفحك لا يدعم هذا البث.");
                 }
             } else {
                 video.src = url;
                 video.load();
-                showSpinner(false);
             }
         }
 
@@ -326,7 +319,7 @@
         function startPlayback(event) {
             event.stopPropagation();
             hasStarted = true;
-            bigPlayBtn.style.display = 'none';
+            bigPlayBtn.style.display = 'none'; // إخفاء الزر نهائياً
             showSpinner(true);
 
             video.play().then(() => {
@@ -386,7 +379,8 @@
             const container = document.getElementById('player-container');
             if (!document.fullscreenElement) {
                 container.requestFullscreen().then(() => {
-                    if (screen.orientation && screen.orientation.lock) {
+                    // قفل اتجاه الشاشة إلى وضع أفقي (ملاحظة: يتطلب دعم المتصفح أو الجوال)
+                    if (screen.orientation && typeof screen.orientation.lock === 'function') {
                         screen.orientation.lock('landscape').catch(() => {});
                     }
                 }).catch(() => {});
@@ -394,7 +388,7 @@
                 if (document.exitFullscreen) {
                     document.exitFullscreen();
                 }
-                if (screen.orientation && screen.orientation.unlock) {
+                if (screen.orientation && typeof screen.orientation.unlock === 'function') {
                     screen.orientation.unlock();
                 }
             }
