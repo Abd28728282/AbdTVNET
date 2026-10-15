@@ -175,23 +175,6 @@
         .btn:active {
             opacity: 0.6;
         }
-
-        /* صندوق الأخطاء داخل الإطار */
-        #error-msg {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            display: none;
-            padding: 12px 20px;
-            border-radius: 8px;
-            background: rgba(255, 59, 48, 0.85);
-            color: #fff;
-            text-align: center;
-            font-size: 14px;
-            z-index: 2000;
-            pointer-events: none;
-        }
     </style>
 </head>
 <body>
@@ -227,8 +210,6 @@
         </div>
     </div>
 
-    <div id="error-msg"></div>
-
     <script>
         const video = document.getElementById('main-video');
         const spinner = document.getElementById('spinner');
@@ -236,7 +217,6 @@
         const dotsBar = document.getElementById('dots-bar');
         const playBtn = document.getElementById('play-btn');
         const controls = document.getElementById('controls');
-        const errorMsg = document.getElementById('error-msg');
         const TOTAL_DOTS = 40;
         let hideTimeout;
         let hls = null;
@@ -247,12 +227,10 @@
             const urlParams = new URLSearchParams(window.location.search);
             const streamUrl = urlParams.get('src');
 
-            bigPlayBtn.style.display = 'flex'; // ضمان ظهوره
+            bigPlayBtn.style.display = 'flex';
 
             if (streamUrl) {
                 initStream(streamUrl);
-            } else {
-                showError("لم يتم تحديد رابط البث في الـ URL (استخدم ?src=رابط_البث)");
             }
         });
 
@@ -288,14 +266,11 @@
 
         // تجهيز البث (يدعم m3u8 و http وروابط الفيديو المباشرة)
         function initStream(url) {
-            hideError();
-
             if (hls) {
                 hls.destroy();
                 hls = null;
             }
 
-            // فحص ما إذا كان الرابط خاص بـ HLS أو رابط HTTP عادي
             if (url.includes('.m3u8') || url.includes('m3u8')) {
                 if (Hls.isSupported()) {
                     hls = new Hls({ 
@@ -306,35 +281,25 @@
                     hls.loadSource(url);
                     hls.attachMedia(video);
 
-                    // معالجة ذكية للأخطاء لتفادي إظهار خطأ وهمي أثناء التحميل المؤقت (Buffering)
                     hls.on(Hls.Events.ERROR, (event, data) => {
                         if (data.fatal) {
                             switch (data.type) {
                                 case Hls.ErrorTypes.NETWORK_ERROR:
-                                    console.log("خطأ في الشبكة، جاري إعادة المحاولة...");
                                     hls.startLoad();
                                     break;
                                 case Hls.ErrorTypes.MEDIA_ERROR:
-                                    console.log("خطأ في الوسائط، جاري محاولة الاستشفاء...");
                                     hls.recoverMediaError();
                                     break;
                                 default:
                                     hls.destroy();
-                                    showError("تعذر الاتصال بخادم البث المباشر.");
                                     break;
                             }
-                        } else {
-                            // أخطاء غير قاتلة (مثل تأخر تحميل قطعة فيديو مؤقتة) يتم تجاهلها وإخفاء أي خطأ قديم
-                            hideError();
                         }
                     });
                 } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                     video.src = url;
-                } else {
-                    showError("متصفحك لا يدعم هذا البث.");
                 }
             } else {
-                // يدعم روابط HTTP العادية (مثل mp4 أو روابط البث المباشر عبر http)
                 video.src = url;
                 video.load();
             }
@@ -344,7 +309,7 @@
         function startPlayback(event) {
             event.stopPropagation();
             hasStarted = true;
-            bigPlayBtn.style.display = 'none'; // إخفاء الزر نهائياً
+            bigPlayBtn.style.display = 'none';
             showSpinner(true);
 
             video.play().then(() => {
@@ -353,7 +318,6 @@
                 showControls();
             }).catch(() => {
                 showSpinner(false);
-                showError("تعذر تشغيل البث، حاول مرة أخرى.");
             });
         }
 
@@ -399,7 +363,6 @@
                 'fa-solid fa-volume-xmark' : 'fa-solid fa-volume-high';
         }
 
-        // التبديل لشاشة كاملة مع قفل الشاشة أفقياً (Landscape)
         function toggleFullscreen() {
             const container = document.getElementById('player-container');
             if (!document.fullscreenElement) {
@@ -421,29 +384,15 @@
         video.addEventListener('waiting', () => showSpinner(true));
         video.addEventListener('playing', () => {
             showSpinner(false);
-            hideError();
             playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
         });
 
         video.addEventListener('error', () => {
-            // نتأكد أن الخطأ ليس بسبب إعادة التحميل الطبيعي
-            if (video.error && video.error.code !== 3) {
-                showSpinner(false);
-                showError("حدث خطأ في تشغيل البث.");
-            }
+            showSpinner(false);
         });
 
         function showSpinner(show) {
             spinner.style.display = show ? 'block' : 'none';
-        }
-
-        function showError(msg) {
-            errorMsg.style.display = 'block';
-            errorMsg.innerText = msg;
-        }
-
-        function hideError() {
-            errorMsg.style.display = 'none';
         }
 
         function formatTime(s) {
