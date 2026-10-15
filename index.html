@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مشغل البث المدمج السريع</title>
+    <title>مشغل البث المدمج السريع (HLS & DASH)</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- مكتبة Hls.js للتشغيل الحقيقي والسريع -->
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script> 
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/dashjs/4.7.4/dash.all.min.js"></script>
+    <!-- مكتبة Hls.js للتشغيل السريع لروابط HLS -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <!-- مكتبة Dash.js للتشغيل السريع لروابط MPD -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dashjs/4.7.4/dash.all.min.js"></script>
 
     <style>
         * {
@@ -245,6 +245,7 @@
         const TOTAL_DOTS = 40;
         let hideTimeout;
         let hls = null;
+        let dashPlayer = null;
         let hasStarted = false;
 
         window.addEventListener('DOMContentLoaded', () => {
@@ -287,22 +288,32 @@
             }
         }
 
-        // تهيئة البث مع أقصى تحسينات السرعة وتقليل التقطيع
-        function initStream(url) {
+        // دالة تنظيف المشغلات السابقة لمنع تداخل الذاكرة
+        function cleanupPlayers() {
             if (hls) {
                 hls.destroy();
                 hls = null;
             }
+            if (dashPlayer) {
+                dashPlayer.reset();
+                dashPlayer = null;
+            }
+        }
+
+        // تهيئة البث مع دعم HLS و DASH والفيديوهات العادية
+        function initStream(url) {
+            cleanupPlayers();
 
             if (url.includes('.m3u8') || url.includes('m3u8')) {
+                // تشغيل روابط HLS
                 if (Hls.isSupported()) {
                     hls = new Hls({ 
-                        maxBufferLength: 60,            /* زيادة التخزين المؤقت إلى 60 ثانية لتفادي التقطيع */
+                        maxBufferLength: 60,
                         maxMaxBufferLength: 120,
-                        maxBufferSize: 60 * 1024 * 1024, /* استهلاك ذاكرة مجدي لحفظ الأجزاء */
+                        maxBufferSize: 60 * 1024 * 1024,
                         liveSyncDurationCount: 3,
-                        enableWorker: true,             /* تشغيل المعالجة في الخلفية لتسريع الأداء */
-                        lowLatencyMode: true,           /* تقليل زمن التأخير */
+                        enableWorker: true,
+                        lowLatencyMode: true,
                         backBufferLength: 30
                     });
                     hls.loadSource(url);
@@ -326,7 +337,24 @@
                 } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                     video.src = url;
                 }
+            } else if (url.includes('.mpd') || url.includes('mpd')) {
+                // تشغيل روابط DASH (ملفات MPD)
+                if (typeof dashjs !== 'undefined') {
+                    dashPlayer = dashjs.MediaPlayer().create();
+                    dashPlayer.initialize(video, url, false); // false يعني عدم التشغيل التلقائي حتى يضغط المستخدم
+                    // تحسينات إضافية لسرعة التشغيل لـ Dash
+                    dashPlayer.updateSettings({
+                        streaming: {
+                            buffer: {
+                                fastSwitchEnabled: true
+                            }
+                        }
+                    });
+                } else {
+                    console.error("مكتبة Dash.js غير محملة بشكل صحيح.");
+                }
             } else {
+                // الفيديوهات العادية مثل MP4
                 video.src = url;
                 video.load();
             }
