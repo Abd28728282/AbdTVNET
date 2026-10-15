@@ -1,65 +1,385 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <title>Cartoon Network Arabic - Live</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.3.5/controls.min.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.3.5/shaka-player.ui.js"></script>
-  <style>
-    body { margin: 0; background-color: #000; display: flex; justify-content: center; align-items: center; height: 100vh; }
-    .container { width: 100%; max-width: 900px; }
-    video { width: 100%; height: 100%; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مشغل البث المدمج</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- مكتبة Hls.js للتشغيل الحقيقي والسريع لروابط m3u8 و HTTP -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Tajawal', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            outline: none !important;
+            user-select: none;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background-color: #000000;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* حاوية المشغل تملأ الشاشة بالكامل داخل الإطار */
+        .custom-player {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            pointer-events: none;
+        }
+
+        /* دائرة التحميل نظام أندرويد في المنتصف */
+        .android-spinner {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-top-color: #00d2ff;
+            border-radius: 50%;
+            animation: androidSpin 0.7s linear infinite;
+            display: none;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        @keyframes androidSpin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* شريط التحكم السريع (يتوارى تلقائياً مثل يوتيوب) */
+        .controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(0deg, rgba(0, 0, 0, 0.9), transparent);
+            padding: 15px 15px 10px 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            opacity: 1;
+            transition: opacity 0.15s ease-in-out;
+            z-index: 5;
+            pointer-events: auto;
+        }
+
+        .controls.hide {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* شريط التقدم النقاط المتراصة */
+        .dots-progress-container {
+            width: 100%;
+            height: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+
+        .dots-bar {
+            width: 100%;
+            height: 5px;
+            display: flex;
+            gap: 2px;
+            align-items: center;
+            pointer-events: none;
+        }
+
+        .dot-unit {
+            flex: 1;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.25);
+            border-radius: 1px;
+        }
+
+        .dot-unit.active {
+            background: #00d2ff;
+        }
+
+        .buttons-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .left-controls, .right-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 4px 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn:active {
+            opacity: 0.6;
+        }
+
+        /* صندوق الأخطاء داخل الإطار */
+        #error-msg {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            background: rgba(255, 59, 48, 0.85);
+            color: #fff;
+            text-align: center;
+            font-size: 14px;
+            z-index: 20;
+            pointer-events: none;
+        }
+    </style>
 </head>
 <body>
 
-  <div class="container" data-shaka-player-container>
-    <video data-shaka-player id="video" autoplay></video>
-  </div>
+    <!-- حاوية المشغل -->
+    <div class="custom-player" id="player-container" onclick="toggleControls()">
+        <div class="android-spinner" id="spinner"></div>
 
-  <script>
-    const manifestUri = 'https://ev-eu-hw-fast-mpd.starzplayarabia.com/Cartoon_Network_Arabic/dash/drm/index.mpd';
+        <video id="main-video" playsinline></video>
 
-    async function initApp() {
-      shaka.polyfill.installAll();
-      const video = document.getElementById('video');
-      const ui = video['ui'];
-      const controls = ui.getControls();
-      const player = controls.getPlayer();
+        <!-- عناصر التحكم -->
+        <div class="controls" id="controls" onclick="event.stopPropagation()">
+            <div class="dots-progress-container" id="dots-progress">
+                <div class="dots-bar" id="dots-bar"></div>
+            </div>
 
-      // ===============================================================
-      // إعدادات التشفير DRM (اختر إحدى الطريقتين ليعمل الصوت والصورة)
-      // ===============================================================
-      player.configure({
-        drm: {
-          // الخيار الأول: استخدام مفاتيح ClearKey المباشرة (إذا قمت باستخراجها)
-          clearKeys: {
-            // 'KID_HEX_HERE': 'KEY_HEX_HERE'
-          },
+            <div class="buttons-row">
+                <div class="left-controls">
+                    <button class="btn" id="play-btn" onclick="togglePlay()"><i class="fa-solid fa-play"></i></button>
+                    <button class="btn" onclick="toggleMute()"><i class="fa-solid fa-volume-high" id="volume-icon"></i></button>
+                    <span id="time-display" style="font-size: 12px; color: #ddd;">00:00 / 00:00</span>
+                </div>
 
-          // الخيار الثاني: استخدام سيرفر التراخيص (Widevine License Server)
-          servers: {
-            'com.widevine.alpha': 'https://YOUR_LICENSE_SERVER_URL'
-          }
+                <div class="right-controls">
+                    <button class="btn" onclick="toggleFullscreen()"><i class="fa-solid fa-expand"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="error-msg"></div>
+
+    <script>
+        const video = document.getElementById('main-video');
+        const spinner = document.getElementById('spinner');
+        const dotsBar = document.getElementById('dots-bar');
+        const playBtn = document.getElementById('play-btn');
+        const controls = document.getElementById('controls');
+        const errorMsg = document.getElementById('error-msg');
+        const TOTAL_DOTS = 40;
+        let hideTimeout;
+        let hls = null;
+
+        // استخراج الرابط تلقائياً من إعدادات الـ URL (الـ Query Parameter باسم src)
+        window.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const streamUrl = urlParams.get('src');
+            
+            if (streamUrl) {
+                playStream(streamUrl);
+            } else {
+                showError("لم يتم تحديد رابط البث في الـ URL (استخدم ?src=رابط_البث)");
+            }
+        });
+
+        // بناء شريط التقدم السريع
+        (function initDots() {
+            const fragment = document.createDocumentFragment();
+            for (let i = 0; i < TOTAL_DOTS; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'dot-unit';
+                fragment.appendChild(dot);
+            }
+            dotsBar.appendChild(fragment);
+        })();
+
+        function toggleControls() {
+            if (controls.classList.contains('hide')) {
+                showControls();
+            } else {
+                controls.classList.add('hide');
+            }
         }
-      });
 
-      // لإرسال Headers أو Tokens مع طلب التراخيص إذا لزم الأمر:
-      player.getNetworkingEngine().registerRequestFilter((type, request) => {
-        if (type === shaka.net.NetworkingEngine.RequestType.LICENSE) {
-          // request.headers['Authorization'] = 'Bearer YOUR_TOKEN';
+        function showControls() {
+            controls.classList.remove('hide');
+            clearTimeout(hideTimeout);
+            if (!video.paused) {
+                hideTimeout = setTimeout(() => {
+                    controls.classList.add('hide');
+                }, 3000);
+            }
         }
-      });
 
-      try {
-        await player.load(manifestUri);
-        console.log('تم تحميل الفيديو وتفكيك التشفير بنجاح.');
-      } catch (error) {
-        console.error('فشل التشغيل بسبب التشفير:', error);
-      }
-    }
+        // دالة تشغيل البث الفعلية
+        function playStream(url) {
+            hideError();
+            showSpinner(true);
 
-    document.addEventListener('shaka-ui-loaded', initApp);
-  </script>
+            if (hls) {
+                hls.destroy();
+                hls = null;
+            }
+
+            if (url.includes('.m3u8')) {
+                if (Hls.isSupported()) {
+                    hls = new Hls({ maxBufferLength: 30, liveSyncDurationCount: 3 });
+                    hls.loadSource(url);
+                    hls.attachMedia(video);
+                    
+                    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                        video.play().then(() => {
+                            showSpinner(false);
+                            playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+                            showControls();
+                        }).catch(() => showSpinner(false));
+                    });
+
+                    hls.on(Hls.Events.ERROR, () => {
+                        showSpinner(false);
+                        showError("تعذر الاتصال بخادم البث المباشر.");
+                    });
+                } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                    video.src = url;
+                    video.play().then(() => {
+                        showSpinner(false);
+                        playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+                        showControls();
+                    });
+                } else {
+                    showSpinner(false);
+                    showError("متصفحك لا يدعم هذا البث.");
+                }
+            } else {
+                video.src = url;
+                video.load();
+                video.play().then(() => {
+                    showSpinner(false);
+                    playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+                    showControls();
+                }).catch(() => showSpinner(false));
+            }
+        }
+
+        video.addEventListener('timeupdate', () => {
+            if (!video.duration || isNaN(video.duration)) return;
+            const percentage = video.currentTime / video.duration;
+            const activeCount = Math.floor(percentage * TOTAL_DOTS);
+            const dots = dotsBar.children;
+            
+            for (let i = 0; i < TOTAL_DOTS; i++) {
+                dots[i].classList.toggle('active', i <= activeCount);
+            }
+
+            document.getElementById('time-display').innerText = 
+                `${formatTime(video.currentTime)} / ${formatTime(video.duration)}`;
+        });
+
+        document.getElementById('dots-progress').addEventListener('click', (e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const percentage = (e.clientX - rect.left) / rect.width;
+            if (video.duration && !isNaN(video.duration)) {
+                video.currentTime = percentage * video.duration;
+            }
+        });
+
+        function togglePlay() {
+            if (video.paused) {
+                video.play();
+                playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+                showControls();
+            } else {
+                video.pause();
+                playBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+                controls.classList.remove('hide');
+                clearTimeout(hideTimeout);
+            }
+        }
+
+        function toggleMute() {
+            video.muted = !video.muted;
+            document.getElementById('volume-icon').className = video.muted ? 
+                'fa-solid fa-volume-xmark' : 'fa-solid fa-volume-high';
+        }
+
+        function toggleFullscreen() {
+            const container = document.getElementById('player-container');
+            if (!document.fullscreenElement) {
+                container.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        video.addEventListener('waiting', () => showSpinner(true));
+        video.addEventListener('playing', () => {
+            showSpinner(false);
+            hideError();
+            playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+        });
+
+        video.addEventListener('error', () => {
+            showSpinner(false);
+            showError("حدث خطأ في تشغيل البث.");
+        });
+
+        function showSpinner(show) {
+            spinner.style.display = show ? 'block' : 'none';
+        }
+
+        function showError(msg) {
+            errorMsg.style.display = 'block';
+            errorMsg.innerText = msg;
+        }
+
+        function hideError() {
+            errorMsg.style.display = 'none';
+        }
+
+        function formatTime(s) {
+            if (isNaN(s)) return "00:00";
+            const m = Math.floor(s / 60);
+            const sec = Math.floor(s % 60);
+            return `${m < 10 ? '0' : ''}${m}:${sec < 10 ? '0' : ''}${sec}`;
+        }
+    </script>
 </body>
 </html>
