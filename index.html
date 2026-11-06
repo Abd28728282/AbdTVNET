@@ -2,459 +2,567 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مشغل البث المدمج السريع (HLS & DASH)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Abd TV</title>
 
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- إعدادات التثبيت كـ PWA ودعم iOS وAndroid بأيقونة مخصصة -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Abd TV">
+    <meta name="theme-color" content="#900020">
+    <link rel="apple-touch-icon" href="https://i.ibb.co/fY1t1K5z/Abd-TV-2-8-apk-icon.png">
+    <link rel="manifest" href='data:application/manifest+json;charset=utf-8,{"name":"Abd TV","short_name":"Abd TV","start_url":"./","display":"standalone","background_color":"%23660012","theme_color":"%23900020","icons":[{"src":"https://i.ibb.co/fY1t1K5z/Abd-TV-2-8-apk-icon.png","sizes":"192x192","type":"image/png"},{"src":"https://i.ibb.co/fY1t1K5z/Abd-TV-2-8-apk-icon.png","sizes":"512x512","type":"image/png"}]}'>
 
-    <!-- مكتبة Hls.js للتشغيل السريع لروابط HLS -->
+    <!-- مكتبات المشغل الأسطوري ArtPlayer مع دعم جميع الصيغ (HLS, DASH, FLV) -->
+    <script src="https://cdn.jsdelivr.net/npm/artplayer/dist/artplayer.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-    <!-- مكتبة Dash.js للتشغيل السريع لروابط MPD -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dashjs/4.7.4/dash.all.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dashjs@latest/dist/dash.all.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flv.js@latest/dist/flv.min.js"></script>
 
     <style>
+        /* إعدادات العناصر والخطوط العامة (مجهزة للأداء العالي والأجهزة الضعيفة) */
         * {
             box-sizing: border-box;
-            font-family: 'Tajawal', sans-serif;
-            -webkit-tap-highlight-color: transparent;
-            outline: none !important;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent !important;
+            -webkit-touch-callout: none;
             user-select: none;
         }
 
-        body, html {
+        *:focus {
+            outline: none !important;
+        }
+
+        input {
+            user-select: text;
+        }
+
+        html, body {
             width: 100%;
             height: 100%;
-            margin: 0;
-            padding: 0;
-            background-color: #000000;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .custom-player {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            background: #000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-        }
-
-        video {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            pointer-events: none;
-        }
-
-        /* زر التشغيل الكبير في المنتصف */
-        .big-play-btn {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 80px;
-            height: 80px;
-            background: rgba(0, 0, 0, 0.8);
-            border: 3px solid rgba(255, 255, 255, 0.9);
-            border-radius: 50%;
-            color: white;
-            font-size: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 9999;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
-            transition: transform 0.2s, background 0.2s;
-        }
-
-        .big-play-btn:active {
-            background: rgba(0, 0, 0, 0.95);
-            transform: translate(-50%, -50%) scale(0.92);
-        }
-
-        /* مؤشر تحميل عصري وجديد (Pulse Wave Loader) */
-        .modern-loader {
-            position: absolute;
-            width: 65px;
-            height: 65px;
-            display: none;
-            z-index: 1000;
-            pointer-events: none;
-        }
-
-        .modern-loader div {
-            position: absolute;
-            border: 3px solid #00d2ff;
-            opacity: 1;
-            border-radius: 50%;
-            animation: pulseWave 1.2s cubic-bezier(0, 0.2, 0.8, 1) infinite;
-            box-shadow: 0 0 12px rgba(0, 210, 255, 0.5);
-        }
-
-        .modern-loader div:nth-child(2) {
-            animation-delay: -0.6s;
-        }
-
-        @keyframes pulseWave {
-            0% {
-                top: 30px;
-                left: 30px;
-                width: 0;
-                height: 0;
-                opacity: 1;
-            }
-            100% {
-                top: 0px;
-                left: 0px;
-                width: 60px;
-                height: 60px;
-                opacity: 0;
-            }
-        }
-
-        /* شريط التحكم */
-        .controls {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: linear-gradient(0deg, rgba(0, 0, 0, 0.9), transparent);
-            padding: 15px 15px 10px 15px;
+            height: 100dvh;
+            background: #2a0008;
             display: flex;
             flex-direction: column;
-            gap: 8px;
-            opacity: 1;
-            transition: opacity 0.15s ease-in-out;
-            z-index: 500;
-            pointer-events: auto;
+            overflow: hidden;
+            position: relative;
         }
 
-        .controls.hide {
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        /* شريط التقدم */
-        .dots-progress-container {
+        /* خلفية بسيطة وسريعة وخفيفة جداً بدون خامات ثقيلة */
+        .simple-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
-            height: 14px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-        }
-
-        .dots-bar {
-            width: 100%;
-            height: 5px;
-            display: flex;
-            gap: 2px;
-            align-items: center;
-            pointer-events: none;
-        }
-
-        .dot-unit {
-            flex: 1;
             height: 100%;
-            background: rgba(255, 255, 255, 0.25);
-            border-radius: 1px;
+            z-index: 0;
+            background: linear-gradient(180deg, #500012 0%, #200007 100%);
         }
 
-        .dot-unit.active {
-            background: #00d2ff;
+        /* واجهة التطبيق الأساسية */
+        .app-container {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
         }
 
-        .buttons-row {
+        /* الشريط العلوي Top Bar */
+        .top-bar {
+            height: 60px;
+            background: #600015;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
             display: flex;
             align-items: center;
             justify-content: space-between;
+            padding: 0 16px;
+            color: white;
+            z-index: 10;
+            flex-shrink: 0;
         }
 
-        .left-controls, .right-controls {
+        .header-left {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 12px;
         }
 
-        .btn {
-            background: none;
-            border: none;
-            color: white;
+        /* زر العودة بالسهم متحه نحو اليمين ➔ */
+        .back-btn {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            color: #ffffff;
             font-size: 18px;
+            font-weight: bold;
             cursor: pointer;
-            padding: 4px 8px;
-            display: flex;
+            display: none;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
             align-items: center;
             justify-content: center;
+            transition: background 0.15s ease;
         }
 
-        .btn:active {
-            opacity: 0.6;
+        .back-btn:active {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .app-title {
+            font-size: 20px;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: 0.5px;
+        }
+
+        .search-container {
+            display: flex;
+            align-items: center;
+        }
+
+        .search-input {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            background: rgba(0, 0, 0, 0.25);
+            outline: none;
+            font-size: 14px;
+            width: 140px;
+            transition: width 0.2s ease;
+            color: #ffffff;
+        }
+
+        .search-input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .search-input:focus {
+            width: 170px;
+            background: rgba(0, 0, 0, 0.4);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* إطار المحتوى الرئيسي */
+        .content-frame {
+            flex: 1;
+            position: relative;
+            padding: 12px 14px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: calc(100% - 60px);
+        }
+
+        /* مؤشر التحميل الدائري */
+        .page-loader {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 44px;
+            height: 44px;
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-top: 4px solid #ffffff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            display: block;
+        }
+
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        /* قائمة العناصر الكروت */
+        .list-view {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .card-item {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            height: 56px;
+            cursor: pointer;
+            transition: background 0.15s ease, transform 0.1s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-item:active {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(0.98);
+        }
+
+        .card-img {
+            width: 32px;
+            height: 32px;
+            object-fit: contain;
+            margin-left: 12px;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #ffffff;
+            flex: 1;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* حاوية المشغل الرئيسي بتصميم فخم خفيف */
+        #playerSection {
+            display: none;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .artplayer-container {
+            width: 100%;
+            height: 100%;
+            min-height: 250px;
+            border-radius: 14px;
+            overflow: hidden;
+            background: #000000;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
         }
     </style>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 </head>
 <body>
 
-    <div class="custom-player" id="player-container" onclick="toggleControls()">
-        <!-- مؤشر التحميل العصري -->
-        <div class="modern-loader" id="spinner">
-            <div></div>
-            <div></div>
-        </div>
+    <!-- خلفية بسيطة وسريعة جداً وخالية من أي بطء -->
+    <div class="simple-bg"></div>
 
-        <!-- زر التشغيل الكبير -->
-        <div class="big-play-btn" id="big-play-btn" onclick="startPlayback(event)">
-            <i class="fa-solid fa-play"></i>
-        </div>
-
-        <video id="main-video" playsinline></video>
-
-        <!-- عناصر التحكم -->
-        <div class="controls" id="controls" onclick="event.stopPropagation()">
-            <div class="dots-progress-container" id="dots-progress">
-                <div class="dots-bar" id="dots-bar"></div>
+    <!-- واجهة التطبيق الأساسية -->
+    <div class="app-container">
+        <div class="top-bar">
+            <div class="header-left">
+                <button id="backBtn" class="back-btn" onclick="goBack()" aria-label="رجوع">➔</button>
+                <div id="appTitle" class="app-title">Abd TV</div>
             </div>
+            <div class="search-container" id="searchBox">
+                <input type="text" id="searchView" class="search-input" placeholder="ابحث هنا...">
+            </div>
+        </div>
 
-            <div class="buttons-row">
-                <div class="left-controls">
-                    <button class="btn" id="play-btn" onclick="togglePlay()"><i class="fa-solid fa-play"></i></button>
-                    <button class="btn" onclick="toggleMute()"><i class="fa-solid fa-volume-high" id="volume-icon"></i></button>
-                    <span id="time-display" style="font-size: 12px; color: #ddd;">00:00 / 00:00</span>
-                </div>
+        <div class="content-frame">
+            <div id="progressBar" class="page-loader"></div>
 
-                <div class="right-controls">
-                    <button class="btn" onclick="toggleFullscreen()"><i class="fa-solid fa-expand"></i></button>
-                </div>
+            <!-- قائمة العناصر والكروت -->
+            <div id="listView" class="list-view"></div>
+
+            <!-- قسم المشغل الأساسي -->
+            <div id="playerSection">
+                <div class="artplayer-container" id="artplayer"></div>
             </div>
         </div>
     </div>
 
     <script>
-        const video = document.getElementById('main-video');
-        const spinner = document.getElementById('spinner');
-        const bigPlayBtn = document.getElementById('big-play-btn');
-        const dotsBar = document.getElementById('dots-bar');
-        const playBtn = document.getElementById('play-btn');
-        const controls = document.getElementById('controls');
-        const TOTAL_DOTS = 40;
-        let hideTimeout;
-        let hls = null;
-        let dashPlayer = null;
-        let hasStarted = false;
+        // إعدادات قاعدة بيانات Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyAXV3LcnXpWxuT6MJwh1q-i5eERjCbhrI",
+            databaseURL: "https://appp-1e19d-default-rtdb.firebaseio.com",
+            storageBucket: "appp-1e19d.firebasestorage.app"
+        };
 
-        window.addEventListener('DOMContentLoaded', () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const streamUrl = urlParams.get('src');
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
 
-            bigPlayBtn.style.display = 'flex';
+        let a_list = [];
+        let filtered_list = [];
+        let currentCategory = null;
+        let isPlayerActive = false;
+        let art = null;
+        let activeHls = null;
+        let activeDash = null;
+        let activeFlv = null;
 
-            if (streamUrl) {
-                initStream(streamUrl);
-            }
-        });
+        const listView = document.getElementById('listView');
+        const playerSection = document.getElementById('playerSection');
+        const progressBar = document.getElementById('progressBar');
+        const searchView = document.getElementById('searchView');
+        const searchBox = document.getElementById('searchBox');
+        const backBtn = document.getElementById('backBtn');
+        const appTitle = document.getElementById('appTitle');
 
-        (function initDots() {
-            const fragment = document.createDocumentFragment();
-            for (let i = 0; i < TOTAL_DOTS; i++) {
-                const dot = document.createElement('div');
-                dot.className = 'dot-unit';
-                fragment.appendChild(dot);
-            }
-            dotsBar.appendChild(fragment);
-        })();
+        // ==================== تشغيل المشغل ودعم جميع الصيغ ====================
+        function openPlayer(url, title) {
+            closePlayer(); // تنظيف أي مشغل سابق
 
-        function toggleControls() {
-            if (!hasStarted) return;
-            if (controls.classList.contains('hide')) {
-                showControls();
-            } else {
-                controls.classList.add('hide');
-            }
-        }
+            isPlayerActive = true;
+            listView.style.display = 'none';
+            searchBox.style.display = 'none';
+            playerSection.style.display = 'flex';
 
-        function showControls() {
-            controls.classList.remove('hide');
-            clearTimeout(hideTimeout);
-            if (!video.paused) {
-                hideTimeout = setTimeout(() => {
-                    controls.classList.add('hide');
-                }, 3000);
-            }
-        }
+            backBtn.style.display = 'flex';
+            appTitle.textContent = title;
 
-        // دالة تنظيف المشغلات السابقة لمنع تداخل الذاكرة
-        function cleanupPlayers() {
-            if (hls) {
-                hls.destroy();
-                hls = null;
-            }
-            if (dashPlayer) {
-                dashPlayer.reset();
-                dashPlayer = null;
-            }
-        }
+            // كشف نوع الصيغة تلقائياً
+            let streamType = 'auto';
+            const cleanUrl = url.toLowerCase();
+            if (cleanUrl.includes('.m3u8')) streamType = 'm3u8';
+            else if (cleanUrl.includes('.mpd')) streamType = 'mpd';
+            else if (cleanUrl.includes('.flv')) streamType = 'flv';
 
-        // تهيئة البث مع دعم HLS و DASH والفيديوهات العادية
-        function initStream(url) {
-            cleanupPlayers();
-
-            if (url.includes('.m3u8') || url.includes('m3u8')) {
-                // تشغيل روابط HLS
-                if (Hls.isSupported()) {
-                    hls = new Hls({ 
-                        maxBufferLength: 60,
-                        maxMaxBufferLength: 120,
-                        maxBufferSize: 60 * 1024 * 1024,
-                        liveSyncDurationCount: 3,
-                        enableWorker: true,
-                        lowLatencyMode: true,
-                        backBufferLength: 30
-                    });
-                    hls.loadSource(url);
-                    hls.attachMedia(video);
-
-                    hls.on(Hls.Events.ERROR, (event, data) => {
-                        if (data.fatal) {
-                            switch (data.type) {
-                                case Hls.ErrorTypes.NETWORK_ERROR:
-                                    hls.startLoad();
-                                    break;
-                                case Hls.ErrorTypes.MEDIA_ERROR:
-                                    hls.recoverMediaError();
-                                    break;
-                                default:
-                                    hls.destroy();
-                                    break;
-                            }
+            art = new Artplayer({
+                container: '#artplayer',
+                url: url,
+                title: title,
+                type: streamType,
+                autoplay: true,
+                isLive: true,
+                fullscreen: true,
+                fullscreenWeb: true,
+                pip: true,
+                setting: true,
+                playbackRate: false, // إخفاء التحكم بالسرعة في البث المباشر
+                aspectRatio: true,
+                theme: '#ff2a55',
+                customType: {
+                    // 1. دعم HLS (.m3u8)
+                    m3u8: function (video, url) {
+                        if (Hls.isSupported()) {
+                            if (activeHls) activeHls.destroy();
+                            const hls = new Hls({
+                                maxBufferLength: 3,
+                                maxMaxBufferLength: 6,
+                                enableWorker: true,
+                                lowLatencyMode: true
+                            });
+                            hls.loadSource(url);
+                            hls.attachMedia(video);
+                            activeHls = hls;
+                        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                            video.src = url;
                         }
-                    });
-                } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                    video.src = url;
+                    },
+                    // 2. دعم MPEG-DASH (.mpd)
+                    mpd: function (video, url) {
+                        if (activeDash) activeDash.reset();
+                        const player = dashjs.MediaPlayer().create();
+                        player.initialize(video, url, true);
+                        activeDash = player;
+                    },
+                    // 3. دعم FLV Stream (.flv)
+                    flv: function (video, url) {
+                        if (flvjs.isSupported()) {
+                            if (activeFlv) activeFlv.destroy();
+                            const flvPlayer = flvjs.createPlayer({ type: 'flv', url: url });
+                            flvPlayer.attachMediaElement(video);
+                            flvPlayer.load();
+                            flvPlayer.play();
+                            activeFlv = flvPlayer;
+                        }
+                    }
                 }
-            } else if (url.includes('.mpd') || url.includes('mpd')) {
-                // تشغيل روابط DASH (ملفات MPD)
-                if (typeof dashjs !== 'undefined') {
-                    dashPlayer = dashjs.MediaPlayer().create();
-                    dashPlayer.initialize(video, url, false); // false يعني عدم التشغيل التلقائي حتى يضغط المستخدم
-                    // تحسينات إضافية لسرعة التشغيل لـ Dash
-                    dashPlayer.updateSettings({
-                        streaming: {
-                            buffer: {
-                                fastSwitchEnabled: true
-                            }
-                        }
-                    });
+            });
+
+            setTimeout(() => {
+                if (art && art.resize) art.resize();
+            }, 50);
+
+            art.on('fullscreen', (isFull) => {
+                if (isFull) {
+                    if (screen.orientation && screen.orientation.lock) {
+                        screen.orientation.lock('landscape').catch(() => {});
+                    }
                 } else {
-                    console.error("مكتبة Dash.js غير محملة بشكل صحيح.");
+                    if (screen.orientation && screen.orientation.unlock) {
+                        screen.orientation.unlock();
+                    }
                 }
-            } else {
-                // الفيديوهات العادية مثل MP4
-                video.src = url;
-                video.load();
-            }
-        }
-
-        function startPlayback(event) {
-            event.stopPropagation();
-            hasStarted = true;
-            bigPlayBtn.style.display = 'none';
-            showSpinner(true);
-
-            video.play().then(() => {
-                showSpinner(false);
-                playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
-                showControls();
-            }).catch(() => {
-                showSpinner(false);
             });
         }
 
-        video.addEventListener('timeupdate', () => {
-            if (!video.duration || isNaN(video.duration)) return;
-            const percentage = video.currentTime / video.duration;
-            const activeCount = Math.floor(percentage * TOTAL_DOTS);
-            const dots = dotsBar.children;
-
-            for (let i = 0; i < TOTAL_DOTS; i++) {
-                dots[i].classList.toggle('active', i <= activeCount);
+        // إغلاق المشغل وتنظيف المحركات من الذاكرة تماماً
+        function closePlayer() {
+            if (activeHls) {
+                activeHls.destroy();
+                activeHls = null;
             }
 
-            document.getElementById('time-display').innerText = 
-                `${formatTime(video.currentTime)} / ${formatTime(video.duration)}`;
-        });
-
-        document.getElementById('dots-progress').addEventListener('click', (e) => {
-            const rect = e.currentTarget.getBoundingClientRect();
-            const percentage = (e.clientX - rect.left) / rect.width;
-            if (video.duration && !isNaN(video.duration)) {
-                video.currentTime = percentage * video.duration;
+            if (activeDash) {
+                activeDash.reset();
+                activeDash = null;
             }
-        });
 
-        function togglePlay() {
-            if (!hasStarted) return;
-            if (video.paused) {
-                video.play();
-                playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
-                showControls();
-            } else {
-                video.pause();
-                playBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
-                controls.classList.remove('hide');
-                clearTimeout(hideTimeout);
+            if (activeFlv) {
+                activeFlv.destroy();
+                activeFlv = null;
             }
-        }
 
-        function toggleMute() {
-            video.muted = !video.muted;
-            document.getElementById('volume-icon').className = video.muted ? 
-                'fa-solid fa-volume-xmark' : 'fa-solid fa-volume-high';
-        }
-
-        function toggleFullscreen() {
-            const container = document.getElementById('player-container');
-            if (!document.fullscreenElement) {
-                container.requestFullscreen().then(() => {
-                    if (screen.orientation && typeof screen.orientation.lock === 'function') {
-                        screen.orientation.lock('landscape').catch(() => {});
-                    }
-                }).catch(() => {});
-            } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                }
-                if (screen.orientation && typeof screen.orientation.unlock === 'function') {
+            if (art) {
+                if (screen.orientation && screen.orientation.unlock) {
                     screen.orientation.unlock();
                 }
+                art.pause();
+                art.destroy(true);
+                art = null;
+            }
+
+            isPlayerActive = false;
+            playerSection.style.display = 'none';
+            searchBox.style.display = 'flex';
+            listView.style.display = 'flex';
+
+            if (currentCategory) {
+                appTitle.textContent = currentCategory;
+                backBtn.style.display = 'flex';
+            } else {
+                appTitle.textContent = "Abd TV";
+                backBtn.style.display = 'none';
             }
         }
 
-        video.addEventListener('waiting', () => showSpinner(true));
-        video.addEventListener('playing', () => {
-            showSpinner(false);
-            playBtn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+        window.addEventListener('resize', () => {
+            if (art && isPlayerActive && art.resize) {
+                art.resize();
+            }
         });
 
-        video.addEventListener('error', () => {
-            showSpinner(false);
+        function goBack() {
+            if (isPlayerActive) {
+                closePlayer();
+            } else if (currentCategory !== null) {
+                currentCategory = null;
+                appTitle.textContent = "Abd TV";
+                backBtn.style.display = 'none';
+                populateMainList();
+            }
+        }
+
+        // ==================== وظائف جلب البيانات والتصفية ====================
+        function parseItemName(item) {
+            if (!item) return "بدون اسم";
+            return item.name || item.Name || item.title || item.Title || "بدون اسم";
+        }
+
+        function parseItemImage(item) {
+            if (!item || typeof item !== 'object') return "";
+            return item.image || item.Image || item.img || "";
+        }
+
+        function parseItemUrl(item) {
+            if (!item || typeof item !== 'object') return "";
+            return item.url || item.Url || item.link || "";
+        }
+
+        function renderList() {
+            listView.innerHTML = '';
+            filtered_list.forEach((item) => {
+                const card = document.createElement('div');
+                card.className = 'card-item';
+
+                const imgUrl = parseItemImage(item).trim();
+                if (imgUrl !== '') {
+                    const img = document.createElement('img');
+                    img.className = 'card-img';
+                    img.src = imgUrl;
+                    img.onerror = function() { this.style.display = 'none'; };
+                    card.appendChild(img);
+                }
+
+                const title = document.createElement('div');
+                title.className = 'card-title';
+                title.textContent = parseItemName(item);
+                card.appendChild(title);
+
+                card.onclick = function() {
+                    const isCategory = item && item.is_category && (item.is_category === true || item.is_category === "true");
+                    if (isCategory) {
+                        currentCategory = parseItemName(item);
+                        appTitle.textContent = currentCategory;
+                        backBtn.style.display = 'flex';
+                        filterByCategory(currentCategory);
+                    } else {
+                        const targetUrl = parseItemUrl(item);
+                        if (targetUrl) {
+                            openPlayer(targetUrl, parseItemName(item));
+                        } else {
+                            alert("رابط البث غير متوفر!");
+                        }
+                    }
+                };
+
+                listView.appendChild(card);
+            });
+        }
+
+        function filterByCategory(catName) {
+            filtered_list = a_list.filter(item => {
+                if (!item) return false;
+                const isCat = item.is_category && (item.is_category === true || item.is_category === "true");
+                if (isCat) return false;
+                const itemCategory = item.category || item.Category || "عام";
+                return itemCategory.toString().trim() === catName.trim();
+            });
+            renderList();
+        }
+
+        function populateMainList() {
+            if (currentCategory !== null) return;
+            filtered_list = a_list.filter(item => {
+                if (!item) return false;
+                const isCategory = item.is_category && (item.is_category === true || item.is_category === "true");
+                const categoryVal = item.category || item.Category || "";
+                const hasCategory = categoryVal.toString().trim() !== "";
+                return isCategory || !hasCategory;
+            });
+            renderList();
+        }
+
+        const dbRef = database.ref('abdo');
+        dbRef.on('value', (snapshot) => {
+            a_list = [];
+            const val = snapshot.val();
+            if (val) {
+                Object.keys(val).forEach(key => {
+                    a_list.push(val[key]);
+                });
+            }
+            if (currentCategory === null && !isPlayerActive) {
+                populateMainList();
+            }
+            if (progressBar) progressBar.style.display = 'none';
         });
 
-        function showSpinner(show) {
-            spinner.style.display = show ? 'block' : 'none';
-        }
-
-        function formatTime(s) {
-            if (isNaN(s)) return "00:00";
-            const m = Math.floor(s / 60);
-            const sec = Math.floor(s % 60);
-            return `${m < 10 ? '0' : ''}${m}:${sec < 10 ? '0' : ''}${sec}`;
-        }
+        searchView.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            if (query === "") {
+                if (currentCategory) filterByCategory(currentCategory);
+                else populateMainList();
+            } else {
+                filtered_list = a_list.filter(item => {
+                    if (!item) return false;
+                    const itemName = parseItemName(item).toLowerCase();
+                    return itemName.includes(query);
+                });
+            }
+            renderList();
+        });
     </script>
 </body>
 </html>
