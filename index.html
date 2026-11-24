@@ -5,227 +5,242 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Abd TV</title>
 
-    <!-- إعدادات التثبيت كـ PWA ودعم iOS وAndroid بأيقونة مخصصة -->
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Abd TV">
-    <meta name="theme-color" content="#900020">
+    <meta name="theme-color" content="#2a0008">
     <link rel="apple-touch-icon" href="https://i.ibb.co/fY1t1K5z/Abd-TV-2-8-apk-icon.png">
-    <link rel="manifest" href='data:application/manifest+json;charset=utf-8,{"name":"Abd TV","short_name":"Abd TV","start_url":"./","display":"standalone","background_color":"%23660012","theme_color":"%23900020","icons":[{"src":"https://i.ibb.co/fY1t1K5z/Abd-TV-2-8-apk-icon.png","sizes":"192x192","type":"image/png"},{"src":"https://i.ibb.co/fY1t1K5z/Abd-TV-2-8-apk-icon.png","sizes":"512x512","type":"image/png"}]}'>
+    <link rel="manifest" href='data:application/manifest+json;charset=utf-8,{"name":"Abd TV","short_name":"Abd TV","start_url":"./","display":"standalone","background_color":"%232a0008","theme_color":"%232a0008","icons":[{"src":"https://i.ibb.co/fY1t1K5z/Abd-TV-2-8-apk-icon.png","sizes":"192x192","type":"image/png"},{"src":"https://i.ibb.co/fY1t1K5z/Abd-TV-2-8-apk-icon.png","sizes":"512x512","type":"image/png"}]}'>
 
-    <!-- مكتبات المشغل الأسطوري ArtPlayer مع دعم جميع الصيغ (HLS, DASH, FLV) -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <script src="https://cdn.jsdelivr.net/npm/artplayer/dist/artplayer.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dashjs@latest/dist/dash.all.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/flv.js@latest/dist/flv.min.js"></script>
 
     <style>
-        /* إعدادات العناصر والخطوط العامة (مجهزة للأداء العالي والأجهزة الضعيفة) */
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.12);
+            --glass-blur: blur(22px) saturate(180%) brightness(1.08);
+            --glass-edge:
+                inset 1.5px 1.5px 1px rgba(255, 255, 255, 0.55),
+                inset -1px -1px 1px rgba(255, 255, 255, 0.18),
+                inset 0 0 22px rgba(255, 255, 255, 0.07),
+                0 10px 30px rgba(0, 0, 0, 0.28);
+            --sheen: linear-gradient(135deg, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0) 38%, rgba(255,255,255,0) 62%, rgba(255,255,255,0.12) 100%);
+            --top: calc(env(safe-area-inset-top, 0px) + 10px);
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             -webkit-tap-highlight-color: transparent !important;
             -webkit-touch-callout: none;
             user-select: none;
         }
-
-        *:focus {
-            outline: none !important;
-        }
-
-        input {
-            user-select: text;
-        }
+        *:focus { outline: none !important; }
+        input { user-select: text; }
 
         html, body {
             width: 100%;
             height: 100%;
             height: 100dvh;
             background: #2a0008;
-            display: flex;
-            flex-direction: column;
             overflow: hidden;
             position: relative;
+            color: #fff;
         }
 
-        /* خلفية بسيطة وسريعة وخفيفة جداً بدون خامات ثقيلة */
+        /* خلفية ملونة ثابتة: الزجاج يحتاج ألواناً خلفه ليظهر انكسار الضوء */
         .simple-bg {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            inset: 0;
             z-index: 0;
-            background: linear-gradient(180deg, #500012 0%, #200007 100%);
+            background:
+                radial-gradient(60% 40% at 15% 12%, rgba(255, 42, 85, 0.85) 0%, transparent 70%),
+                radial-gradient(55% 38% at 90% 30%, rgba(255, 138, 61, 0.65) 0%, transparent 70%),
+                radial-gradient(70% 45% at 20% 62%, rgba(122, 44, 255, 0.60) 0%, transparent 70%),
+                radial-gradient(60% 40% at 85% 92%, rgba(255, 94, 168, 0.60) 0%, transparent 70%),
+                linear-gradient(180deg, #4a0014 0%, #1c0006 100%);
         }
 
-        /* واجهة التطبيق الأساسية */
         .app-container {
             position: relative;
             z-index: 1;
-            display: flex;
-            flex-direction: column;
             width: 100%;
             height: 100%;
         }
 
-        /* الشريط العلوي Top Bar */
+        /* عنصر زجاجي عام */
+        .glass {
+            position: relative;
+            background: var(--glass-bg);
+            -webkit-backdrop-filter: var(--glass-blur);
+            backdrop-filter: var(--glass-blur);
+            box-shadow: var(--glass-edge);
+        }
+        .glass::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background: var(--sheen);
+            pointer-events: none;
+        }
+
+        /* الشريط العلوي العائم */
         .top-bar {
-            height: 60px;
-            background: #600015;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            position: absolute;
+            top: var(--top);
+            left: 12px;
+            right: 12px;
+            height: 58px;
+            border-radius: 29px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 16px;
-            color: white;
+            padding: 0 10px 0 14px;
             z-index: 10;
-            flex-shrink: 0;
         }
 
         .header-left {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
+            min-width: 0;
         }
 
-        /* زر العودة بالسهم متحه نحو اليمين ➔ */
         .back-btn {
-            background: rgba(255, 255, 255, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.25);
-            color: #ffffff;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
             display: none;
-            width: 38px;
-            height: 38px;
+            width: 40px;
+            height: 40px;
+            flex-shrink: 0;
             border-radius: 50%;
+            border: none;
             align-items: center;
             justify-content: center;
-            transition: background 0.15s ease;
+            color: #fff;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.16);
+            box-shadow: inset 1px 1px 1px rgba(255,255,255,0.6), inset -1px -1px 1px rgba(255,255,255,0.2), 0 4px 12px rgba(0,0,0,0.25);
+            transition: transform 0.2s cubic-bezier(.3,1.6,.5,1), background 0.2s ease;
         }
-
-        .back-btn:active {
-            background: rgba(255, 255, 255, 0.3);
-        }
+        .back-btn:active { transform: scale(0.88); background: rgba(255, 255, 255, 0.32); }
 
         .app-title {
-            font-size: 20px;
-            font-weight: 800;
-            color: #ffffff;
-            letter-spacing: 0.5px;
+            font-size: 19px;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-shadow: 0 1px 6px rgba(0, 0, 0, 0.35);
         }
 
-        .search-container {
-            display: flex;
-            align-items: center;
-        }
+        .search-container { display: flex; align-items: center; }
 
         .search-input {
-            padding: 8px 16px;
+            width: 132px;
+            height: 40px;
+            padding: 0 16px;
             border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.25);
-            background: rgba(0, 0, 0, 0.25);
-            outline: none;
+            border: none;
             font-size: 14px;
-            width: 140px;
-            transition: width 0.2s ease;
-            color: #ffffff;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.22);
+            box-shadow: inset 0 1.5px 4px rgba(0, 0, 0, 0.35), inset 0 -1px 1px rgba(255, 255, 255, 0.28);
+            transition: width 0.35s cubic-bezier(.3,1.2,.5,1), background 0.2s ease;
         }
+        .search-input::placeholder { color: rgba(255, 255, 255, 0.65); }
+        .search-input:focus { width: 168px; background: rgba(0, 0, 0, 0.34); }
 
-        .search-input::placeholder {
-            color: rgba(255, 255, 255, 0.6);
-        }
-
-        .search-input:focus {
-            width: 170px;
-            background: rgba(0, 0, 0, 0.4);
-            border-color: rgba(255, 255, 255, 0.5);
-        }
-
-        /* إطار المحتوى الرئيسي */
+        /* إطار المحتوى يمتد خلف الشريط الزجاجي */
         .content-frame {
-            flex: 1;
-            position: relative;
-            padding: 12px 14px;
+            position: absolute;
+            inset: 0;
+            padding: calc(var(--top) + 58px + 16px) 14px calc(env(safe-area-inset-bottom, 0px) + 112px);
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            width: 100%;
-            height: calc(100% - 60px);
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
         }
+        .content-frame::-webkit-scrollbar { display: none; }
 
-        /* مؤشر التحميل الدائري */
         .page-loader {
-            position: absolute;
-            top: 40%;
+            position: fixed;
+            top: 45%;
             left: 50%;
-            transform: translate(-50%, -50%);
             width: 44px;
             height: 44px;
-            border: 4px solid rgba(255, 255, 255, 0.2);
-            border-top: 4px solid #ffffff;
+            border: 4px solid rgba(255, 255, 255, 0.25);
+            border-top-color: #fff;
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
-            display: block;
+            z-index: 5;
         }
-
         @keyframes spin {
-            0% { transform: translate(-50%, -50%) rotate(0deg); }
-            100% { transform: translate(-50%, -50%) rotate(360deg); }
+            from { transform: translate(-50%, -50%) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(360deg); }
         }
 
-        /* قائمة العناصر الكروت */
         .list-view {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
             width: 100%;
         }
 
         .card-item {
-            background: rgba(255, 255, 255, 0.08);
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            --x: 50%;
+            --y: 50%;
+            height: 62px;
+            border-radius: 24px;
             display: flex;
             align-items: center;
-            padding: 0 16px;
-            height: 56px;
+            padding: 0 18px;
             cursor: pointer;
-            transition: background 0.15s ease, transform 0.1s ease;
-            position: relative;
             overflow: hidden;
+            transition: transform 0.25s cubic-bezier(.3,1.5,.5,1), background 0.2s ease;
         }
-
-        .card-item:active {
-            background: rgba(255, 255, 255, 0.2);
-            transform: scale(0.98);
+        /* لمعة تتبع مكان اللمس */
+        .card-item::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background: radial-gradient(160px circle at var(--x) var(--y), rgba(255,255,255,0.45), transparent 65%);
+            opacity: 0;
+            transition: opacity 0.25s ease;
+            pointer-events: none;
         }
+        .card-item:active { transform: scale(0.965); background: rgba(255, 255, 255, 0.2); }
+        .card-item:active::after { opacity: 1; }
 
         .card-img {
-            width: 32px;
-            height: 32px;
+            width: 34px;
+            height: 34px;
             object-fit: contain;
             margin-left: 12px;
+            border-radius: 9px;
+            position: relative;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
         }
 
         .card-title {
-            font-size: 16px;
-            font-weight: 700;
-            color: #ffffff;
+            position: relative;
             flex: 1;
             text-align: center;
+            font-size: 16px;
+            font-weight: 600;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
         }
 
-        /* حاوية المشغل الرئيسي بتصميم فخم خفيف */
         #playerSection {
             display: none;
             flex-direction: column;
@@ -238,50 +253,321 @@
             width: 100%;
             height: 100%;
             min-height: 250px;
-            border-radius: 14px;
+            border-radius: 28px;
             overflow: hidden;
-            background: #000000;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            background: #000;
+            box-shadow:
+                0 0 0 1.5px rgba(255, 255, 255, 0.35),
+                inset 1.5px 1.5px 1px rgba(255, 255, 255, 0.5),
+                0 18px 44px rgba(0, 0, 0, 0.55);
+        }
+
+        /* تعديل واجهة المشغل لتتناسب مع الزجاج */
+        .art-video-player { border-radius: inherit; }
+        .art-bottom { background: linear-gradient(to top, rgba(0,0,0,0.6), transparent) !important; }
+        .art-settings, .art-contextmenus {
+            background: rgba(50, 0, 18, 0.45) !important;
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            backdrop-filter: blur(24px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.28) !important;
+            border-radius: 18px !important;
+        }
+
+
+        /* ===== القائمة السفلية Liquid Glass ===== */
+        .tab-bar {
+            position: absolute;
+            bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+            left: 50%;
+            transform: translateX(-50%);
+            width: min(340px, calc(100% - 40px));
+            height: 68px;
+            padding: 6px;
+            border-radius: 34px;
+            display: flex;
+            z-index: 10;
+        }
+        .tab-lens {
+            position: absolute;
+            left: 0;
+            top: 6px;
+            height: calc(100% - 12px);
+            width: 0;
+            border-radius: 28px;
+            background: rgba(255, 255, 255, 0.2);
+            box-shadow:
+                inset 1.5px 1.5px 1px rgba(255, 255, 255, 0.7),
+                inset -1px -1px 1px rgba(255, 255, 255, 0.25),
+                inset 0 0 14px rgba(255, 255, 255, 0.15),
+                0 4px 14px rgba(0, 0, 0, 0.25);
+            transition: transform 0.5s cubic-bezier(.3, 1.4, .5, 1), width 0.5s cubic-bezier(.3, 1.4, .5, 1);
+            pointer-events: none;
+        }
+        .tab {
+            position: relative;
+            z-index: 1;
+            flex: 1;
+            border: none;
+            background: none;
+            color: rgba(255, 255, 255, 0.72);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: color 0.25s ease, transform 0.25s cubic-bezier(.3, 1.6, .5, 1);
+        }
+        .tab svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+        .tab.active { color: #fff; }
+        .tab.active[data-tab="favs"] svg { fill: #ffd25e; stroke: #ffd25e; }
+        .tab:active { transform: scale(0.9); }
+
+        .star-btn {
+            position: relative;
+            width: 38px;
+            height: 38px;
+            flex-shrink: 0;
+            margin-right: 6px;
+            border: none;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.14);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 1px 1px 1px rgba(255, 255, 255, 0.5), inset -1px -1px 1px rgba(255, 255, 255, 0.15);
+            transition: transform 0.25s cubic-bezier(.3, 1.8, .5, 1);
+        }
+        .star-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
+        .star-btn.on { color: #ffd25e; }
+        .star-btn.on svg { fill: #ffd25e; }
+        .star-btn:active { transform: scale(0.8); }
+
+        .empty {
+            margin: 24px auto;
+            padding: 26px 22px;
+            max-width: 300px;
+            border-radius: 28px;
+            text-align: center;
+            font-size: 15px;
+            line-height: 1.8;
+            white-space: pre-line;
+        }
+
+
+        /* ===== ضغط مطول وسحب العدسة (مثل iOS 26) ===== */
+        .tab-bar {
+            touch-action: none;
+            transition: transform 0.4s cubic-bezier(.3, 1.5, .5, 1);
+        }
+        .tab-bar.held { transform: translateX(-50%) scale(1.045); }
+        .tab-bar.held .tab-lens {
+            background: linear-gradient(180deg, rgba(255,255,255,0.36), rgba(255,255,255,0.10));
+            box-shadow:
+                inset 2px 2px 2px rgba(255, 255, 255, 0.9),
+                inset -2px -2px 2px rgba(255, 255, 255, 0.45),
+                inset 0 0 24px rgba(255, 255, 255, 0.32),
+                0 12px 28px rgba(0, 0, 0, 0.4);
+            transition: transform 0.14s ease-out, background 0.25s ease, box-shadow 0.25s ease;
+        }
+        .tab-bar.held .tab { transition: transform 0.14s ease-out, color 0.15s ease; }
+        .tab.near { color: #fff; }
+        .tab-bar.held .tab.active:not(.near) { color: rgba(255, 255, 255, 0.72); }
+
+
+        /* ===== تحسين قرب القائمة من شكل iOS 26 ===== */
+        .tab-bar {
+            --glass-bg: rgba(255, 255, 255, 0.07);
+            --glass-blur: blur(10px) saturate(210%) brightness(1.12);
+            --glass-edge:
+                inset 0 0 26px rgba(255, 255, 255, 0.06),
+                0 14px 36px rgba(0, 0, 0, 0.32);
+        }
+        /* إطار مضيء متدرج: اللمعة تظهر في زاويتين متقابلتين مثل زجاج أبل */
+        .tab-bar::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            padding: 1.3px;
+            background: linear-gradient(155deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.10) 32%, rgba(255,255,255,0.06) 68%, rgba(255,255,255,0.65) 100%);
+            -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            -webkit-mask-composite: xor;
+            mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+            pointer-events: none;
+        }
+        .tab-lens { background: rgba(255, 255, 255, 0.15); }
+        /* التبويب المحدد بلون التمييز مثل iOS */
+        .tab.active { color: #ff6b86; }
+        .tab.active[data-tab="favs"] { color: #ffd25e; }
+
+
+        /* ===== زجاج واقعي: شفاف بدل الأبيض الحليبي ===== */
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.04);
+            --glass-blur: blur(14px) saturate(165%);
+            --glass-edge:
+                inset 1px 1px 0 rgba(255, 255, 255, 0.6),
+                inset -1px -1px 0 rgba(255, 255, 255, 0.14),
+                inset 0 0 0 0.5px rgba(255, 255, 255, 0.14),
+                inset 8px 10px 16px -10px rgba(255, 255, 255, 0.28),
+                inset -8px -10px 16px -10px rgba(0, 0, 0, 0.3),
+                0 14px 34px rgba(0, 0, 0, 0.32);
+            --sheen: linear-gradient(135deg, rgba(255,255,255,0.13) 0%, rgba(255,255,255,0) 30%, rgba(255,255,255,0) 72%, rgba(255,255,255,0.05) 100%);
+        }
+        .tab-bar {
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-blur: blur(12px) saturate(175%);
+        }
+        .tab-lens { background: rgba(255, 255, 255, 0.07); }
+        .tab-bar.held .tab-lens {
+            background: linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.03));
+        }
+        .back-btn { background: rgba(255, 255, 255, 0.07); }
+        .star-btn { background: rgba(255, 255, 255, 0.07); }
+        .card-item:active { background: rgba(255, 255, 255, 0.1); }
+
+        /* دوائر حادة الحواف خلف الزجاج ليظهر التمويه والانكسار فعلاً */
+        .simple-bg::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(circle at 84% 16%, #ffb36b 0 70px, transparent 72px),
+                radial-gradient(circle at 10% 34%, #ff2a55 0 52px, transparent 54px),
+                radial-gradient(circle at 78% 60%, #8a4dff 0 96px, transparent 98px),
+                radial-gradient(circle at 18% 80%, #ffd25e 0 60px, transparent 62px),
+                radial-gradient(circle at 60% 92%, #ff5ea8 0 44px, transparent 46px);
+            opacity: 0.9;
+        }
+
+
+        /* ===== مؤثرات القائمة السفلية ===== */
+        .tab-bar { --tint: 255,107,134; }
+        .tab-bar[data-active="favs"] { --tint: 255,210,94; }
+        .tab-bar[data-active="search"] { --tint: 124,200,255; }
+        .tab.active[data-tab="search"] { color: #7cc8ff; }
+
+        /* حافة مضيئة تتحرك مع ميلان الجهاز */
+        .tab-bar::after {
+            background: linear-gradient(var(--rim-angle, 155deg), rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.10) 32%, rgba(255,255,255,0.06) 68%, rgba(255,255,255,0.65) 100%);
+        }
+
+        /* لمعة تتبع الإصبع / المؤشر */
+        .bar-light, .bar-shine {
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        .bar-light {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            background: radial-gradient(130px circle at var(--lx, 50%) var(--ly, 50%), rgba(255,255,255,0.42), rgba(255,255,255,0.08) 45%, transparent 70%);
+        }
+        .tab-bar.touch .bar-light { opacity: 1; }
+        .tab-bar:hover .bar-light { opacity: 0.6; }
+
+        /* وميض يمر على القائمة عند تغيير التبويب */
+        .bar-shine {
+            opacity: 0;
+            background: linear-gradient(110deg, transparent 38%, rgba(255,255,255,0.45) 50%, transparent 62%);
+            background-size: 260% 100%;
+            background-position: 120% 0;
+        }
+        .bar-shine.go { animation: barShine 0.9s ease-out; }
+        @keyframes barShine {
+            0%   { opacity: 0; background-position: 120% 0; }
+            15%  { opacity: 1; }
+            100% { opacity: 0; background-position: -20% 0; }
+        }
+
+        /* توهج العدسة بلون التبويب */
+        .tab-lens {
+            box-shadow:
+                inset 1.5px 1.5px 1px rgba(255,255,255,0.7),
+                inset -1px -1px 1px rgba(255,255,255,0.25),
+                inset 0 0 14px rgba(255,255,255,0.15),
+                0 0 22px rgba(var(--tint), 0.5),
+                0 4px 14px rgba(0,0,0,0.25);
+        }
+        .tab-bar.held .tab-lens {
+            box-shadow:
+                inset 2px 2px 2px rgba(255,255,255,0.9),
+                inset -2px -2px 2px rgba(255,255,255,0.45),
+                inset 0 0 24px rgba(255,255,255,0.32),
+                0 0 34px rgba(var(--tint), 0.75),
+                0 12px 28px rgba(0,0,0,0.4);
+        }
+
+        /* قفزة الأيقونة عند التفعيل */
+        .tab.pop svg { animation: tabPop 0.55s cubic-bezier(.3,1.8,.5,1); }
+        @keyframes tabPop {
+            0%   { transform: scale(0.65) rotate(-10deg); }
+            60%  { transform: scale(1.28) rotate(3deg); }
+            100% { transform: scale(1) rotate(0); }
+        }
+
+        /* تصغير القائمة عند التمرير للأسفل (مثل iOS 26) */
+        .tab-bar.mini { transform: translateX(-50%) translateY(8px) scale(0.88); }
+        .tab-bar.mini .tab span { opacity: 0; transform: translateY(-4px); }
+        .tab span { transition: opacity 0.25s ease, transform 0.25s ease; }
+        .tab-bar.mini.held { transform: translateX(-50%) scale(1.045); }
+
+        /* انكسار ضوء حقيقي (Chromium فقط) */
+        html.lg-refract .tab-bar {
+            -webkit-backdrop-filter: url(#lg-bar) blur(4px) saturate(180%);
+            backdrop-filter: url(#lg-bar) blur(4px) saturate(180%);
+        }
+        html.lg-refract .tab-lens {
+            -webkit-backdrop-filter: url(#lg-lens) saturate(150%);
+            backdrop-filter: url(#lg-lens) saturate(150%);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * { transition: none !important; animation-duration: 1.5s !important; }
         }
     </style>
 
-    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 </head>
 <body>
 
-    <!-- خلفية بسيطة وسريعة جداً وخالية من أي بطء -->
     <div class="simple-bg"></div>
 
-    <!-- واجهة التطبيق الأساسية -->
     <div class="app-container">
-        <div class="top-bar">
+        <div class="top-bar glass">
             <div class="header-left">
                 <button id="backBtn" class="back-btn" onclick="goBack()" aria-label="رجوع">➔</button>
                 <div id="appTitle" class="app-title">Abd TV</div>
             </div>
-            <div class="search-container" id="searchBox">
+            <div class="search-container" id="searchBox" style="display:none">
                 <input type="text" id="searchView" class="search-input" placeholder="ابحث هنا...">
             </div>
         </div>
 
         <div class="content-frame">
             <div id="progressBar" class="page-loader"></div>
-
-            <!-- قائمة العناصر والكروت -->
             <div id="listView" class="list-view"></div>
-
-            <!-- قسم المشغل الأساسي -->
             <div id="playerSection">
                 <div class="artplayer-container" id="artplayer"></div>
             </div>
         </div>
+
+        <nav class="tab-bar glass" id="tabBar">
+            <div class="tab-lens" id="tabLens"></div>
+            <button class="tab active" data-tab="home"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>الرئيسية</span></button>
+            <button class="tab" data-tab="favs"><svg viewBox="0 0 24 24"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg><span>المفضلة</span></button>
+            <button class="tab" data-tab="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span>البحث</span></button>
+        </nav>
     </div>
 
     <script>
-        // إعدادات قاعدة بيانات Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyAXV3LcnXpWxuT6MJwh1q-i5eERjCbhrI",
             databaseURL: "https://appp-1e19d-default-rtdb.firebaseio.com",
@@ -300,6 +586,41 @@
         let activeDash = null;
         let activeFlv = null;
 
+        let currentTab = 'home';
+        const tabTitles = { home: 'Abd TV', favs: 'المفضلة', search: 'البحث' };
+        const STAR_SVG = '<svg viewBox="0 0 24 24"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>';
+        let favs = [];
+        try { favs = JSON.parse(localStorage.getItem('abdtv_favs') || '[]'); } catch (e) {}
+        const isCat = (i) => !!(i && i.is_category && (i.is_category === true || i.is_category === "true"));
+        const favKey = (i) => parseItemUrl(i) || parseItemName(i);
+        const isFav = (i) => favs.includes(favKey(i));
+        function toggleFav(i) {
+            const k = favKey(i);
+            favs = favs.includes(k) ? favs.filter(x => x !== k) : favs.concat(k);
+            try { localStorage.setItem('abdtv_favs', JSON.stringify(favs)); } catch (e) {}
+        }
+
+        const LIBS = {
+            hls: 'https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js',
+            dash: 'https://cdn.jsdelivr.net/npm/dashjs@4.7.4/dist/dash.all.min.js',
+            flv: 'https://cdn.jsdelivr.net/npm/flv.js@1.6.2/dist/flv.min.js'
+        };
+        const libPromises = {};
+        function loadLib(k) {
+            if (!libPromises[k]) {
+                libPromises[k] = new Promise((res, rej) => {
+                    const sc = document.createElement('script');
+                    sc.src = LIBS[k];
+                    sc.onload = res;
+                    sc.onerror = () => { delete libPromises[k]; rej(); };
+                    document.head.appendChild(sc);
+                });
+            }
+            return libPromises[k];
+        }
+        loadLib('hls').catch(() => {});
+        const isApple = /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent);
+
         const listView = document.getElementById('listView');
         const playerSection = document.getElementById('playerSection');
         const progressBar = document.getElementById('progressBar');
@@ -308,9 +629,8 @@
         const backBtn = document.getElementById('backBtn');
         const appTitle = document.getElementById('appTitle');
 
-        // ==================== تشغيل المشغل ودعم جميع الصيغ ====================
         function openPlayer(url, title) {
-            closePlayer(); // تنظيف أي مشغل سابق
+            closePlayer();
 
             isPlayerActive = true;
             listView.style.display = 'none';
@@ -320,7 +640,6 @@
             backBtn.style.display = 'flex';
             appTitle.textContent = title;
 
-            // كشف نوع الصيغة تلقائياً
             let streamType = 'auto';
             const cleanUrl = url.toLowerCase();
             if (cleanUrl.includes('.m3u8')) streamType = 'm3u8';
@@ -333,49 +652,68 @@
                 title: title,
                 type: streamType,
                 autoplay: true,
+                playsInline: true,
                 isLive: true,
                 fullscreen: true,
                 fullscreenWeb: true,
                 pip: true,
                 setting: true,
-                playbackRate: false, // إخفاء التحكم بالسرعة في البث المباشر
+                playbackRate: false,
                 aspectRatio: true,
                 theme: '#ff2a55',
                 customType: {
-                    // 1. دعم HLS (.m3u8)
                     m3u8: function (video, url) {
-                        if (Hls.isSupported()) {
-                            if (activeHls) activeHls.destroy();
-                            const hls = new Hls({
-                                maxBufferLength: 3,
-                                maxMaxBufferLength: 6,
-                                enableWorker: true,
-                                lowLatencyMode: true
-                            });
-                            hls.loadSource(url);
-                            hls.attachMedia(video);
-                            activeHls = hls;
-                        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                        if (isApple && video.canPlayType('application/vnd.apple.mpegurl')) {
                             video.src = url;
+                            return;
                         }
+                        loadLib('hls').then(() => {
+                            if (!video.isConnected) return;
+                            if (window.Hls && Hls.isSupported()) {
+                                if (activeHls) activeHls.destroy();
+                                const hls = new Hls({
+                                    maxBufferLength: 8,
+                                    maxMaxBufferLength: 12,
+                                    backBufferLength: 10,
+                                    startFragPrefetch: true,
+                                    lowLatencyMode: true,
+                                    enableWorker: true,
+                                    manifestLoadingTimeOut: 8000,
+                                    levelLoadingTimeOut: 8000,
+                                    fragLoadingTimeOut: 12000
+                                });
+                                hls.on(Hls.Events.ERROR, (_, d) => {
+                                    if (!d.fatal) return;
+                                    if (d.type === Hls.ErrorTypes.NETWORK_ERROR) hls.startLoad();
+                                    else if (d.type === Hls.ErrorTypes.MEDIA_ERROR) hls.recoverMediaError();
+                                });
+                                hls.loadSource(url);
+                                hls.attachMedia(video);
+                                activeHls = hls;
+                            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                                video.src = url;
+                            }
+                        }).catch(() => { video.src = url; });
                     },
-                    // 2. دعم MPEG-DASH (.mpd)
                     mpd: function (video, url) {
-                        if (activeDash) activeDash.reset();
-                        const player = dashjs.MediaPlayer().create();
-                        player.initialize(video, url, true);
-                        activeDash = player;
+                        loadLib('dash').then(() => {
+                            if (!video.isConnected) return;
+                            if (activeDash) activeDash.reset();
+                            const player = dashjs.MediaPlayer().create();
+                            player.initialize(video, url, true);
+                            activeDash = player;
+                        }).catch(() => {});
                     },
-                    // 3. دعم FLV Stream (.flv)
                     flv: function (video, url) {
-                        if (flvjs.isSupported()) {
+                        loadLib('flv').then(() => {
+                            if (!video.isConnected || !flvjs.isSupported()) return;
                             if (activeFlv) activeFlv.destroy();
                             const flvPlayer = flvjs.createPlayer({ type: 'flv', url: url });
                             flvPlayer.attachMediaElement(video);
                             flvPlayer.load();
                             flvPlayer.play();
                             activeFlv = flvPlayer;
-                        }
+                        }).catch(() => {});
                     }
                 }
             });
@@ -397,22 +735,10 @@
             });
         }
 
-        // إغلاق المشغل وتنظيف المحركات من الذاكرة تماماً
         function closePlayer() {
-            if (activeHls) {
-                activeHls.destroy();
-                activeHls = null;
-            }
-
-            if (activeDash) {
-                activeDash.reset();
-                activeDash = null;
-            }
-
-            if (activeFlv) {
-                activeFlv.destroy();
-                activeFlv = null;
-            }
+            if (activeHls) { activeHls.destroy(); activeHls = null; }
+            if (activeDash) { activeDash.reset(); activeDash = null; }
+            if (activeFlv) { activeFlv.destroy(); activeFlv = null; }
 
             if (art) {
                 if (screen.orientation && screen.orientation.unlock) {
@@ -425,22 +751,20 @@
 
             isPlayerActive = false;
             playerSection.style.display = 'none';
-            searchBox.style.display = 'flex';
+            searchBox.style.display = currentTab === 'search' ? 'flex' : 'none';
             listView.style.display = 'flex';
 
             if (currentCategory) {
                 appTitle.textContent = currentCategory;
                 backBtn.style.display = 'flex';
             } else {
-                appTitle.textContent = "Abd TV";
+                appTitle.textContent = tabTitles[currentTab];
                 backBtn.style.display = 'none';
             }
         }
 
         window.addEventListener('resize', () => {
-            if (art && isPlayerActive && art.resize) {
-                art.resize();
-            }
+            if (art && isPlayerActive && art.resize) art.resize();
         });
 
         function goBack() {
@@ -454,7 +778,6 @@
             }
         }
 
-        // ==================== وظائف جلب البيانات والتصفية ====================
         function parseItemName(item) {
             if (!item) return "بدون اسم";
             return item.name || item.Name || item.title || item.Title || "بدون اسم";
@@ -470,11 +793,20 @@
             return item.url || item.Url || item.link || "";
         }
 
+        // لمعة الزجاج تتبع مكان اللمس
+        listView.addEventListener('pointerdown', (e) => {
+            const c = e.target.closest('.card-item');
+            if (!c) return;
+            const r = c.getBoundingClientRect();
+            c.style.setProperty('--x', (e.clientX - r.left) + 'px');
+            c.style.setProperty('--y', (e.clientY - r.top) + 'px');
+        });
+
         function renderList() {
             listView.innerHTML = '';
             filtered_list.forEach((item) => {
                 const card = document.createElement('div');
-                card.className = 'card-item';
+                card.className = 'card-item glass';
 
                 const imgUrl = parseItemImage(item).trim();
                 if (imgUrl !== '') {
@@ -489,6 +821,20 @@
                 title.className = 'card-title';
                 title.textContent = parseItemName(item);
                 card.appendChild(title);
+
+                if (!isCat(item)) {
+                    const star = document.createElement('button');
+                    star.className = 'star-btn' + (isFav(item) ? ' on' : '');
+                    star.innerHTML = STAR_SVG;
+                    star.setAttribute('aria-label', 'المفضلة');
+                    star.onclick = function(e) {
+                        e.stopPropagation();
+                        toggleFav(item);
+                        star.classList.toggle('on', isFav(item));
+                        if (currentTab === 'favs') refresh();
+                    };
+                    card.appendChild(star);
+                }
 
                 card.onclick = function() {
                     const isCategory = item && item.is_category && (item.is_category === true || item.is_category === "true");
@@ -543,26 +889,276 @@
                     a_list.push(val[key]);
                 });
             }
-            if (currentCategory === null && !isPlayerActive) {
-                populateMainList();
-            }
+            if (!isPlayerActive) refresh();
             if (progressBar) progressBar.style.display = 'none';
         });
 
-        searchView.addEventListener('input', (e) => {
-            const query = e.target.value.toLowerCase().trim();
-            if (query === "") {
-                if (currentCategory) filterByCategory(currentCategory);
+        function refresh() {
+            if (currentTab === 'home') {
+                if (currentCategory !== null) filterByCategory(currentCategory);
                 else populateMainList();
-            } else {
-                filtered_list = a_list.filter(item => {
-                    if (!item) return false;
-                    const itemName = parseItemName(item).toLowerCase();
-                    return itemName.includes(query);
-                });
+                return;
             }
+            const q = searchView.value.toLowerCase().trim();
+            filtered_list = a_list.filter(i => i && !isCat(i) &&
+                (currentTab === 'favs' ? isFav(i) : (!q || parseItemName(i).toLowerCase().includes(q))));
             renderList();
+            if (!filtered_list.length) {
+                const d = document.createElement('div');
+                d.className = 'empty glass';
+                d.textContent = currentTab === 'favs'
+                    ? 'لا توجد قنوات في المفضلة بعد.\nاضغط على النجمة بجانب أي قناة لإضافتها.'
+                    : 'لا توجد نتائج مطابقة.';
+                listView.appendChild(d);
+            }
+        }
+
+        const lens = document.getElementById('tabLens');
+        function moveLens() {
+            const t = document.querySelector('.tab.active');
+            if (!t) return;
+            lens.style.width = t.offsetWidth + 'px';
+            lens.style.transform = 'translateX(' + t.offsetLeft + 'px)';
+        }
+
+        function showTab(tab) {
+            if (isPlayerActive) closePlayer();
+            currentTab = tab;
+            currentCategory = null;
+            document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+            moveLens();
+            tabBar.dataset.active = tab;
+            popTab(tab);
+            backBtn.style.display = 'none';
+            appTitle.textContent = tabTitles[tab];
+            if (tab !== 'search') searchView.value = '';
+            searchBox.style.display = tab === 'search' ? 'flex' : 'none';
+            if (tab === 'search') setTimeout(() => searchView.focus(), 60);
+            refresh();
+            document.querySelector('.content-frame').scrollTop = 0;
+        }
+
+        const tabBar = document.getElementById('tabBar');
+        const tabEls = Array.from(document.querySelectorAll('.tab'));
+        let hold = null, suppressClick = false;
+        const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+        tabEls.forEach(b => b.addEventListener('click', () => {
+            if (suppressClick) return;
+            showTab(b.dataset.tab);
+        }));
+
+        function localX(cx) {
+            const r = tabBar.getBoundingClientRect();
+            const k = r.width / tabBar.offsetWidth;
+            const lefts = tabEls.map(t => t.offsetLeft);
+            return clamp((cx - r.left) / k - lens.offsetWidth / 2, Math.min(...lefts), Math.max(...lefts));
+        }
+
+        function nearestTab(x) {
+            const c = x + lens.offsetWidth / 2;
+            return tabEls.reduce((a, t) =>
+                Math.abs(t.offsetLeft + t.offsetWidth / 2 - c) < Math.abs(a.offsetLeft + a.offsetWidth / 2 - c) ? t : a);
+        }
+
+        function paintLens() {
+            if (!hold || !hold.on) return;
+            const sp = Math.abs(hold.v);
+            const sx = 1.16 + clamp(sp * 0.14, 0, 0.3);
+            const sy = 1.16 - clamp(sp * 0.05, 0, 0.08);
+            lens.style.transform = 'translateX(' + hold.x + 'px) scale(' + sx + ',' + sy + ')';
+            const c = hold.x + lens.offsetWidth / 2;
+            tabEls.forEach(t => {
+                const k = Math.max(0, 1 - Math.abs(t.offsetLeft + t.offsetWidth / 2 - c) / t.offsetWidth);
+                t.style.transform = 'scale(' + (1 + 0.25 * k) + ')';
+                t.classList.toggle('near', k > 0.5);
+            });
+            const n = nearestTab(hold.x);
+            if (n !== hold.near) {
+                if (hold.near && navigator.vibrate) navigator.vibrate(6);
+                hold.near = n;
+            }
+        }
+
+        function startHold(cx) {
+            if (!hold || hold.on) return;
+            hold.on = true;
+            tabBar.classList.add('held');
+            try { tabBar.setPointerCapture(hold.id); } catch (_) {}
+            hold.x = localX(cx);
+            hold.lt = performance.now();
+            paintLens();
+        }
+
+        function endHold(cancel) {
+            if (!hold) return;
+            clearTimeout(hold.timer);
+            clearTimeout(hold.rt);
+            const h = hold;
+            hold = null;
+            if (!h.on) return;
+            suppressClick = true;
+            setTimeout(() => { suppressClick = false; }, 60);
+            tabBar.classList.remove('held');
+            tabEls.forEach(t => { t.style.transform = ''; t.classList.remove('near'); });
+            const best = nearestTab(h.x);
+            if (!cancel && best.dataset.tab !== currentTab) showTab(best.dataset.tab);
+            else moveLens();
+        }
+
+        tabBar.addEventListener('pointerdown', (e) => {
+            hold = { id: e.pointerId, sx: e.clientX, v: 0, on: false, x: 0, lt: 0, near: null };
+            hold.timer = setTimeout(() => startHold(e.clientX), 160);
         });
+        tabBar.addEventListener('pointermove', (e) => {
+            if (!hold) return;
+            if (!hold.on) {
+                if (Math.abs(e.clientX - hold.sx) > 6) { clearTimeout(hold.timer); startHold(e.clientX); }
+                return;
+            }
+            const now = performance.now();
+            const nx = localX(e.clientX);
+            const dt = Math.max(1, now - hold.lt);
+            hold.v = hold.v * 0.6 + ((nx - hold.x) / dt) * 0.4;
+            hold.x = nx;
+            hold.lt = now;
+            paintLens();
+            clearTimeout(hold.rt);
+            hold.rt = setTimeout(() => { if (hold) { hold.v = 0; paintLens(); } }, 90);
+        });
+        tabBar.addEventListener('pointerup', () => endHold(false));
+        tabBar.addEventListener('pointercancel', () => endHold(true));
+        tabBar.addEventListener('contextmenu', (e) => e.preventDefault());
+        searchView.addEventListener('input', refresh);
+        window.addEventListener('resize', moveLens);
+        window.addEventListener('load', moveLens);
+        moveLens();
+
+        /* ===== مؤثرات القائمة السفلية: انكسار ضوء، لمعة، ميلان، وميض ===== */
+        const barLight = document.createElement('div');
+        barLight.className = 'bar-light';
+        const barShine = document.createElement('div');
+        barShine.className = 'bar-shine';
+        tabBar.prepend(barShine);
+        tabBar.prepend(barLight);
+        tabBar.dataset.active = 'home';
+
+        function popTab(tab) {
+            tabEls.forEach(t => t.classList.remove('pop'));
+            const t = tabEls.find(x => x.dataset.tab === tab);
+            if (t) { void t.offsetWidth; t.classList.add('pop'); }
+            barShine.classList.remove('go');
+            void barShine.offsetWidth;
+            barShine.classList.add('go');
+        }
+
+        // اللمعة تتبع الإصبع
+        function moveLight(e) {
+            const r = tabBar.getBoundingClientRect();
+            const k = r.width / tabBar.offsetWidth;
+            tabBar.style.setProperty('--lx', ((e.clientX - r.left) / k) + 'px');
+            tabBar.style.setProperty('--ly', ((e.clientY - r.top) / k) + 'px');
+        }
+        tabBar.addEventListener('pointermove', moveLight);
+        tabBar.addEventListener('pointerdown', (e) => { moveLight(e); tabBar.classList.add('touch'); tabBar.classList.remove('mini'); });
+        ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev =>
+            tabBar.addEventListener(ev, () => tabBar.classList.remove('touch')));
+
+        // تصغير القائمة عند التمرير للأسفل وتكبيرها عند الصعود
+        const frameEl = document.querySelector('.content-frame');
+        let lastTop = 0;
+        frameEl.addEventListener('scroll', () => {
+            const t = frameEl.scrollTop, d = t - lastTop;
+            if (Math.abs(d) < 6) return;
+            tabBar.classList.toggle('mini', d > 0 && t > 80);
+            lastTop = t;
+        }, { passive: true });
+
+        // ميلان الجهاز يحرك زاوية الحافة المضيئة
+        let tiltOn = false;
+        function onTilt(e) {
+            if (e.gamma == null) return;
+            tabBar.style.setProperty('--rim-angle', (155 + clamp(e.gamma, -45, 45) * 1.6) + 'deg');
+        }
+        function enableTilt() {
+            if (tiltOn) return;
+            tiltOn = true;
+            if (typeof DeviceOrientationEvent !== 'undefined' && DeviceOrientationEvent.requestPermission) {
+                DeviceOrientationEvent.requestPermission()
+                    .then(r => { if (r === 'granted') window.addEventListener('deviceorientation', onTilt); })
+                    .catch(() => {});
+            } else {
+                window.addEventListener('deviceorientation', onTilt);
+            }
+        }
+        tabBar.addEventListener('pointerdown', enableTilt, { once: true });
+
+        // خريطة إزاحة (Displacement Map) لحواف زجاجية منحنية
+        function makeMap(w, h, r, bezel, mag) {
+            const c = document.createElement('canvas');
+            c.width = w; c.height = h;
+            const ctx = c.getContext('2d');
+            const img = ctx.createImageData(w, h), d = img.data;
+            for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                    const px = x + 0.5 - w / 2, py = y + 0.5 - h / 2;
+                    const qx = Math.abs(px) - (w / 2 - r), qy = Math.abs(py) - (h / 2 - r);
+                    const ox = Math.max(qx, 0), oy = Math.max(qy, 0);
+                    const depth = -(Math.hypot(ox, oy) + Math.min(Math.max(qx, qy), 0) - r);
+                    let mx = 0, my = 0;
+                    if (depth >= 0 && depth < bezel) {
+                        const m = Math.pow(1 - depth / bezel, 2);
+                        let gx, gy;
+                        if (qx > 0 || qy > 0) { const L = Math.hypot(ox, oy) || 1; gx = Math.sign(px) * ox / L; gy = Math.sign(py) * oy / L; }
+                        else if (qx > qy) { gx = Math.sign(px); gy = 0; }
+                        else { gx = 0; gy = Math.sign(py); }
+                        mx = -gx * m; my = -gy * m;
+                    }
+                    mx -= (px / (w / 2)) * mag;
+                    my -= (py / (h / 2)) * mag;
+                    const i = (y * w + x) * 4;
+                    d[i] = clamp(128 + mx * 127, 0, 255);
+                    d[i + 1] = clamp(128 + my * 127, 0, 255);
+                    d[i + 2] = 128;
+                    d[i + 3] = 255;
+                }
+            }
+            ctx.putImageData(img, 0, 0);
+            return c.toDataURL();
+        }
+
+        // فلتر SVG: انكسار + تشتت لوني (أحمر/أخضر/أزرق بإزاحات مختلفة)
+        function glassFilter(id, url, w, h, sc) {
+            const ch = [['1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0', 1], ['0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0', 0.9], ['0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 1 0', 0.8]];
+            let f = '<filter id="' + id + '" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">' +
+                '<feImage href="' + url + '" x="0" y="0" width="' + w + '" height="' + h + '" preserveAspectRatio="none" result="m"/>';
+            ch.forEach((c, n) => {
+                f += '<feDisplacementMap in="SourceGraphic" in2="m" scale="' + (sc * c[1]) + '" xChannelSelector="R" yChannelSelector="G" result="d' + n + '"/>' +
+                     '<feColorMatrix in="d' + n + '" type="matrix" values="' + c[0] + '" result="c' + n + '"/>';
+            });
+            return f + '<feBlend in="c0" in2="c1" mode="screen" result="rg"/><feBlend in="rg" in2="c2" mode="screen"/></filter>';
+        }
+
+        const canRefract = !!window.chrome && /Chrome\//.test(navigator.userAgent) && !/iPhone|iPad|iPod/.test(navigator.userAgent);
+        const svgHost = document.createElement('div');
+        svgHost.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden;pointer-events:none';
+        document.body.appendChild(svgHost);
+
+        function buildRefraction() {
+            if (!canRefract) return;
+            const bw = tabBar.offsetWidth, bh = tabBar.offsetHeight;
+            const lw = Math.max(40, lens.offsetWidth), lh = Math.max(30, lens.offsetHeight);
+            if (!bw || !bh) return;
+            svgHost.innerHTML = '<svg width="0" height="0">' +
+                glassFilter('lg-bar', makeMap(bw, bh, bh / 2, 22, 0), bw, bh, 34) +
+                glassFilter('lg-lens', makeMap(lw, lh, lh / 2, 16, 0.4), lw, lh, 46) +
+                '</svg>';
+            document.documentElement.classList.add('lg-refract');
+        }
+        let rfT;
+        window.addEventListener('resize', () => { clearTimeout(rfT); rfT = setTimeout(buildRefraction, 150); });
+        window.addEventListener('load', buildRefraction);
+        buildRefraction();
     </script>
 </body>
 </html>
