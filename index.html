@@ -1139,7 +1139,7 @@
             return f + '<feBlend in="c0" in2="c1" mode="screen" result="rg"/><feBlend in="rg" in2="c2" mode="screen"/></filter>';
         }
 
-        const canRefract = !!window.chrome && /Chrome\//.test(navigator.userAgent) && !/iPhone|iPad|iPod/.test(navigator.userAgent);
+        const canRefract = /Chrome\//.test(navigator.userAgent) && !/iPhone|iPad|iPod/.test(navigator.userAgent);
         const svgHost = document.createElement('div');
         svgHost.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden;pointer-events:none';
         document.body.appendChild(svgHost);
